@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { contractAddress, contractABI } from "../../smart-contract.abi";
 import { libraryPoolAddress, libraryPoolABI } from "../../library-pool.abi";
 import CivilibAccessButton from "./CivilibAccessButton";
+import CategoryBadge from "../CategoryBadge";
+import type { Book } from "../../core/interfaces/book.interface";
 
 interface Props {
   book: Book;
@@ -119,6 +121,12 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress }: Props) 
           <p className="line-clamp-1 text-xs text-zinc-500 mt-1">
             {book.author}
           </p>
+          {/* Category Badge */}
+          {book.category && (
+            <div className="mt-2">
+              <CategoryBadge category={book.category} size="sm" />
+            </div>
+          )}
           <div className="flex flex-col items-start justify-start mt-3 mb-3 w-full gap-2">
             {loading ? (
               <span className="bg-zinc-100 text-zinc-600 text-xs font-semibold px-2.5 py-0.5 rounded-sm animate-pulse">

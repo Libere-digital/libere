@@ -1,5 +1,5 @@
 ---
-noteId: "96ee2210ba6411f098c215b9d310be9c"
+noteId: "408bb320d8db11f0bac7ebddf7dc79d0"
 tags: []
 
 ---
@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Libere** is a decentralized digital library platform built on Base Sepolia blockchain. It enables users to publish, purchase, donate, borrow, and read digital books (EPUB format) as ERC-1155 NFTs with USDC payments and gasless transactions.
+**Libere** is a decentralized digital library platform built on Base Sepolia blockchain. It enables users to publish, purchase, donate, borrow, and read digital books (EPUB/PDF) and listen to audiobooks as ERC-1155 NFTs with USDC payments and gasless transactions.
 
 ## Key Technologies
 
@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Storage**: Pinata (IPFS) for book files, Supabase for metadata & EPUB storage
 - **Ethereum Libraries**: viem v2 + ethers v6 + permissionless
 - **PWA**: Progressive Web App with offline support via Vite PWA plugin
-- **Document Readers**: react-reader for EPUB books, react-pdf for PDF documents, both with custom watermark overlay
+- **Document Readers**: react-reader for EPUB books, react-pdf for PDF documents, HTML5 audio for audiobooks, all with custom watermark overlay
 
 ## Smart Contracts
 
@@ -71,7 +71,7 @@ npm run sync:libraries     # Sync library NFTs data
 
 ## Environment Setup
 
-Copy `.env.example` (provided in git status output) and configure:
+Create a `.env` file in the root directory with the following variables:
 
 ```env
 # Privy Authentication
@@ -116,6 +116,7 @@ main.tsx (entry point) → PrivyProvider (auth) → CurrencyProvider → Browser
 - `/libraries/:id` → LibraryDetailScreen (view library details + browse/borrow books)
 - `/bookselfs` → BookselfScreen (user's owned + borrowed books)
 - `/read-book/:id` → DocumentReaderScreen (unified reader for EPUB/PDF with watermark and NFT verification)
+- `/listen-audiobook/:id` → AudiobookPlayerScreen (audiobook player with NFT verification)
 
 **Temporarily Hidden:**
 - `/publish` → CreateBookV2Screen (publish new books - currently disabled due to onlyOwner contract restriction)
@@ -161,6 +162,7 @@ interface Book {
   addressRoyaltyRecipient: string;
   quantity?: number;             // NFT balance (for bookshelf)
   fileType?: 'epub' | 'pdf';     // Document type (optional, defaults to 'epub')
+  audiobook?: string;            // URL to audiobook file (MP3) - optional
 }
 ```
 
@@ -345,9 +347,10 @@ const balance = await readContract(publicClient, {
 
 ### IPFS Integration
 
-Books are stored on IPFS via Pinata (legacy) or Supabase Storage (current):
+Books and audiobooks are stored on IPFS via Pinata (legacy) or Supabase Storage (current):
 - **Cover images**: Uploaded as PNG/JPG
 - **Document files**: EPUB or PDF format
+- **Audiobook files**: MP3 format (stored in `audiobook` field)
 - **IPFS URLs**: `https://gateway.pinata.cloud/ipfs/{hash}` (legacy)
 - **Supabase URLs**: `https://{project}.supabase.co/storage/v1/object/public/libere-books/{filename}`
 
@@ -372,7 +375,7 @@ const { data, error } = await supabase
   .single();
 ```
 
-## Document Reader Implementation
+## Document & Audiobook Reader Implementation
 
 ### Unified Document Reader
 The app uses [DocumentReaderScreen](src/pages/DocumentReaderScreen.tsx) as a unified entry point for reading both EPUB and PDF files:
@@ -385,6 +388,16 @@ The app uses [DocumentReaderScreen](src/pages/DocumentReaderScreen.tsx) as a uni
 5. Routes to appropriate renderer:
    - EPUB → [EpubReaderScreen](src/pages/EpubReaderScreen.tsx) (uses react-reader)
    - PDF → [PdfRenderer](src/pages/PdfRenderer.tsx) (uses react-pdf)
+
+### Audiobook Player
+The app uses [AudiobookPlayerScreen](src/pages/AudiobookPlayerScreen.tsx) for playing MP3 audiobooks:
+
+**How it works:**
+1. Verifies NFT ownership OR library borrowing access via smart contract
+2. Fetches book metadata from Supabase
+3. Loads MP3 file from `audiobook` field
+4. Plays audio using HTML5 audio element with custom controls
+5. Displays watermark overlay with user's wallet address
 
 **Access Verification:**
 ```typescript
@@ -407,7 +420,7 @@ const usableBalance = await publicClient.readContract({
 ```
 
 ### Watermark Overlay
-Both readers include [WatermarkOverlay](src/components/reader/WatermarkOverlay.tsx) that displays:
+All readers (EPUB, PDF, audiobook) include [WatermarkOverlay](src/components/reader/WatermarkOverlay.tsx) that displays:
 - User's wallet address (prevents screenshot sharing)
 - Borrow expiry countdown (for borrowed books)
 - Diagonal repeating pattern for security
@@ -426,6 +439,7 @@ The app is configured as a PWA with offline support and can be installed on devi
 - **Installable**: Can be installed as standalone app on desktop/mobile
 - **Workbox Caching Strategies**:
   - Document files (EPUB/PDF): NetworkOnly (NEVER cached for security - prevents unauthorized offline access)
+  - Audiobook files (MP3): CacheFirst (7 day cache, 10MB limit) - allows offline listening
   - Supabase signed URLs: NetworkOnly (expire quickly, should not be cached)
   - Supabase API: NetworkFirst (5 min cache)
   - IPFS/Pinata images: CacheFirst (24 hour cache)
@@ -433,7 +447,7 @@ The app is configured as a PWA with offline support and can be installed on devi
 ### PWA Configuration
 Located in [vite.config.ts](vite.config.ts) using `vite-plugin-pwa`. Service worker registers automatically in [main.tsx](src/main.tsx:17-47).
 
-**Security Note**: Both EPUB and PDF files are intentionally excluded from caching to prevent unauthorized offline access. Users can only read books while authenticated and with valid access rights.
+**Security Note**: Both EPUB and PDF files are intentionally excluded from caching to prevent unauthorized offline access. Users can only read books while authenticated and with valid access rights. Audiobooks are cached for offline listening convenience, with a 10MB file size limit per file.
 
 ## Utility Scripts
 

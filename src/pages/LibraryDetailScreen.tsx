@@ -1,6 +1,6 @@
 import HomeLayout from "../components/layouts/HomeLayout";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import config from "../libs/config";
 import CivilibBookList from "../components/civilib/CivilibBookList";
 import type { Book } from "../core/interfaces/book.interface";
@@ -8,8 +8,42 @@ import type { Book } from "../core/interfaces/book.interface";
 const baseUrl = config.env.supabase.baseUrl;
 const libraryPoolAddress = '0xA31D6d3f2a6C5fBA99E451CCAAaAdf0bca12cbF0';
 
+// Library data mapping
+const libraryData = {
+  1: {
+    name: 'The Room 19',
+    tagline: 'Independent library at the heart of Bandung',
+    logoPath: '/library-logos/room19.png',
+    logoFallback: 'T19',
+    address: {
+      street: 'Jl. Dipati Ukur No.66C, Lebakgede',
+      city: 'Kecamatan Coblong, Kota Bandung',
+      postal: 'Jawa Barat 40132',
+    },
+    mapEmbed: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.9037064795!2d107.61526731477396!3d-6.902247995014827!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e68e7b1e9e9e9e9%3A0x1e9e9e9e9e9e9e9!2sJl.%20Dipati%20Ukur%20No.66C%2C%20Lebakgede%2C%20Kecamatan%20Coblong%2C%20Kota%20Bandung%2C%20Jawa%20Barat%2040132!5e0!3m2!1sen!2sid!4v1234567890123!5m2!1sen!2sid',
+    mapLink: 'https://maps.app.goo.gl/RhFxAx4YUW7sk3CH6',
+  },
+  2: {
+    name: 'Perpustakaan Digital Kota Bandung',
+    tagline: 'Dinas Arsip dan Perpustakaan Kota Bandung',
+    logoPath: '/library-logos/bandung.png',
+    logoFallback: 'PKB',
+    address: {
+      street: 'Jl. Kawaluyaan Indah II No.4, Jatisari',
+      city: 'Kec. Buahbatu, Kota Bandung',
+      postal: 'Jawa Barat',
+    },
+    mapEmbed: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.3726449871615!2d107.63588731477454!3d-6.957745995007234!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e68e9ad1e0f1471%3A0x2a211d4736dab1d3!2sDinas%20Arsip%20dan%20Perpustakaan%20Kota%20Bandung%20(Disarpus)!5e0!3m2!1sen!2sid!4v1734175834567!5m2!1sen!2sid',
+    mapLink: 'https://www.google.com/maps/place/Dinas+Arsip+dan+Perpustakaan+Kota+Bandung+(Disarpus)/@-6.9577459,107.6358873,17z/data=!3m1!4b1!4m6!3m5!1s0x2e68e9ad1e0f1471:0x2a211d4736dab1d3!8m2!3d-6.9577512!4d107.6384622!16s%2Fg%2F1hc1l6d_1',
+  },
+};
+
 const LibraryDetailScreen = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const libraryId = id ? parseInt(id) : 1;
+  const library = libraryData[libraryId as keyof typeof libraryData] || libraryData[1];
+
   const [books, setBooks] = useState<Book[]>([]);
   const [nftBooks, setNftBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -100,12 +134,12 @@ const LibraryDetailScreen = () => {
               {/* Logo */}
               <div className="w-16 h-16 rounded-full bg-white border-2 border-amber-200 shadow-md flex items-center justify-center overflow-hidden">
                 <img
-                  src="/library-logos/room19.png"
-                  alt="The Room 19 Logo"
+                  src={library.logoPath}
+                  alt={`${library.name} Logo`}
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
-                    e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full bg-[#C4C961] flex items-center justify-center"><span class="text-white text-xs font-bold">T19</span></div>';
+                    e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full bg-[#C4C961] flex items-center justify-center"><span class="text-white text-xs font-bold">${library.logoFallback}</span></div>`;
                   }}
                 />
               </div>
@@ -113,10 +147,10 @@ const LibraryDetailScreen = () => {
               {/* Title and Tagline */}
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">
-                  The Room 19
+                  {library.name}
                 </h1>
                 <p className="text-sm text-zinc-600 mt-1">
-                  Independent library at the heart of Bandung
+                  {library.tagline}
                 </p>
               </div>
             </div>
@@ -153,14 +187,14 @@ const LibraryDetailScreen = () => {
               {/* Map */}
               <div className="w-full h-64 rounded-lg overflow-hidden shadow-md">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.9037064795!2d107.61526731477396!3d-6.902247995014827!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e68e7b1e9e9e9e9%3A0x1e9e9e9e9e9e9e9!2sJl.%20Dipati%20Ukur%20No.66C%2C%20Lebakgede%2C%20Kecamatan%20Coblong%2C%20Kota%20Bandung%2C%20Jawa%20Barat%2040132!5e0!3m2!1sen!2sid!4v1234567890123!5m2!1sen!2sid"
+                  src={library.mapEmbed}
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
                   allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  title="The Room 19 Location"
+                  title={`${library.name} Location`}
                 />
               </div>
 
@@ -189,16 +223,16 @@ const LibraryDetailScreen = () => {
                   </svg>
                   <div>
                     <p className="text-zinc-900 font-medium">
-                      Jl. Dipati Ukur No.66C, Lebakgede
+                      {library.address.street}
                     </p>
                     <p className="text-zinc-600 text-sm">
-                      Kecamatan Coblong, Kota Bandung
+                      {library.address.city}
                     </p>
-                    <p className="text-zinc-600 text-sm">Jawa Barat 40132</p>
+                    <p className="text-zinc-600 text-sm">{library.address.postal}</p>
                   </div>
                 </div>
                 <a
-                  href="https://maps.app.goo.gl/RhFxAx4YUW7sk3CH6"
+                  href={library.mapLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-amber-600 hover:text-amber-700 font-medium text-sm"

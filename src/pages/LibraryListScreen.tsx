@@ -5,20 +5,39 @@ const LibraryListScreen = () => {
   const navigate = useNavigate();
 
   // Hardcoded library data - simple and direct
-  const library = {
-    id: 1,
-    name: 'The Room 19',
-    address: '0xA31D6d3f2a6C5fBA99E451CCAAaAdf0bca12cbF0',
-    description: 'Bandung Public Library serves the creative community of Bandung with a curated selection of digital books.',
-    stats: {
-      books: 98,
-      members: 843,
-      copies: 267
+  const libraries = [
+    {
+      id: 1,
+      name: 'The Room 19',
+      address: '0xA31D6d3f2a6C5fBA99E451CCAAaAdf0bca12cbF0',
+      description: 'Bandung Public Library serves the creative community of Bandung with a curated selection of digital books.',
+      logoPath: '/library-logos/room19.png',
+      logoFallback: 'T19',
+      location: 'Bandung, Indonesia',
+      stats: {
+        books: 98,
+        members: 843,
+        copies: 267
+      }
+    },
+    {
+      id: 2,
+      name: 'Perpustakaan Digital Kota Bandung',
+      address: '0xA31D6d3f2a6C5fBA99E451CCAAaAdf0bca12cbF0',
+      description: 'Dinas Arsip dan Perpustakaan Kota Bandung menyediakan koleksi buku digital untuk masyarakat Bandung',
+      logoPath: '/library-logos/bandung.png',
+      logoFallback: 'PKB',
+      location: 'Jl. Kawaluyaan Indah II No.4, Jatisari, Kec. Buahbatu, Kota Bandung',
+      stats: {
+        books: 98,
+        members: 843,
+        copies: 267
+      }
     }
-  };
+  ];
 
-  const handleVisit = () => {
-    navigate(`/libraries/${library.id}`);
+  const handleVisit = (libraryId: number) => {
+    navigate(`/libraries/${libraryId}`);
   };
 
   const truncateAddress = (address: string) => {
@@ -50,12 +69,14 @@ const LibraryListScreen = () => {
           </div>
         </div>
 
-        {/* Library Card - Positioned Left */}
+        {/* Library Cards Grid */}
         <div className="w-full flex items-start justify-center pb-8">
-          <div className="max-w-screen-xl w-full px-4 sm:px-6 flex justify-start">
-            <div className="w-full max-w-md">
-              {/* Library Card */}
-              <div className="bg-white rounded-2xl border border-zinc-200 shadow-md hover:shadow-xl transition-all duration-300">
+          <div className="max-w-screen-xl w-full px-4 sm:px-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {libraries.map((library) => (
+                <div key={library.id} className="w-full">
+                  {/* Library Card */}
+                  <div className="bg-white rounded-2xl border border-zinc-200 shadow-md hover:shadow-xl transition-all duration-300">
                 {/* Header with extra padding top for logo */}
                 <div className="relative h-40 bg-gradient-to-br from-amber-100 to-yellow-100">
                   <div
@@ -69,13 +90,13 @@ const LibraryListScreen = () => {
                   <div className="absolute -bottom-10 left-6">
                     <div className="w-20 h-20 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center overflow-hidden">
                       <img
-                        src="/library-logos/room19.png"
-                        alt="The Room 19 Logo"
+                        src={library.logoPath}
+                        alt={`${library.name} Logo`}
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           // Fallback to styled text if image not found
                           e.currentTarget.style.display = 'none';
-                          e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full bg-[#C4C961] flex items-center justify-center"><span class="text-white text-xs font-bold">T19</span></div>';
+                          e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full bg-[#C4C961] flex items-center justify-center"><span class="text-white text-xs font-bold">${library.logoFallback}</span></div>`;
                         }}
                       />
                     </div>
@@ -91,11 +112,11 @@ const LibraryListScreen = () => {
 
                   {/* Location */}
                   <div className="flex items-center gap-1.5 text-zinc-600 mb-3">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <span className="text-xs">Bandung, Indonesia</span>
+                    <span className="text-xs">{library.location}</span>
                   </div>
 
                   {/* Description */}
@@ -146,7 +167,7 @@ const LibraryListScreen = () => {
 
                   {/* Action Button */}
                   <button
-                    onClick={handleVisit}
+                    onClick={() => handleVisit(library.id)}
                     className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors shadow-md hover:shadow-lg"
                   >
                     <span>Visit Library</span>
@@ -156,6 +177,8 @@ const LibraryListScreen = () => {
                   </button>
                 </div>
               </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

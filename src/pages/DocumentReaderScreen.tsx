@@ -10,6 +10,7 @@ import { contractABI, contractAddress } from "../smart-contract.abi";
 import { libraryPoolABI, libraryPoolAddress } from "../library-pool.abi";
 import EpubReaderScreen from "./EpubReaderScreen";
 import PdfRenderer from "./PdfRenderer";
+import DonationSplashScreen from "../components/reader/DonationSplashScreen";
 
 console.log('📱 [DocumentReaderScreen] Unified reader for EPUB and PDF with NFT + Library verification');
 
@@ -25,10 +26,14 @@ const DocumentReaderScreen = () => {
   const [hasBorrowed, setHasBorrowed] = useState<boolean | null>(null); // null = checking
   const [borrowExpiry, setBorrowExpiry] = useState<number | null>(null); // Unix timestamp
   const [bookTitle, setBookTitle] = useState<string>("Loading...");
+  const [bookCover, setBookCover] = useState<string>("");
+  const [donatedBy, setDonatedBy] = useState<string | undefined>(undefined);
+  const [donatedAt, setDonatedAt] = useState<string | undefined>(undefined);
   const [documentData, setDocumentData] = useState<ArrayBuffer | null>(null);
   const [documentType, setDocumentType] = useState<'epub' | 'pdf' | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [showSplash, setShowSplash] = useState<boolean>(false);
 
   // =============================================================
   // 🔐 ACCESS VERIFICATION (NFT Ownership OR Library Borrowing)
@@ -183,6 +188,7 @@ const DocumentReaderScreen = () => {
         console.log(`📚 [LoadBook] Fetching book #${bookId} from database...`);
 
         // Fetch book metadata from Supabase
+        // Note: donated_by and donated_at columns may not exist yet in database
         const { data: book, error: fetchError } = await supabase
           .from('Book')
           .select('id, title, author, epub, metadataUri')
@@ -198,6 +204,20 @@ const DocumentReaderScreen = () => {
 
         console.log('✅ [LoadBook] Book fetched:', book.title);
         setBookTitle(book.title);
+        setBookCover(book.metadataUri);
+
+        // MOCKUP DATA - Hardcoded donation info for testing
+        // TODO: Replace with actual database values after running SQL migration
+        const mockDonatedBy = "PT Everidea Interaktif Nusantara";
+        const mockDonatedAt = "2025-12-01T00:00:00+07:00";
+
+        setDonatedBy(mockDonatedBy);
+        setDonatedAt(mockDonatedAt);
+
+        console.log('📦 [LoadBook] Donation info (MOCKUP):', {
+          donatedBy: mockDonatedBy,
+          donatedAt: mockDonatedAt,
+        });
 
         // Verify document is from Supabase Storage
         if (!isSupabaseStorageUrl(book.epub)) {
@@ -253,6 +273,12 @@ const DocumentReaderScreen = () => {
         setDocumentData(arrayBuffer);
         setLoading(false);
 
+        // Show splash screen if book has donation info (mockup enabled)
+        if (mockDonatedBy) {
+          console.log('🎬 [LoadBook] Showing donation splash screen...');
+          setShowSplash(true);
+        }
+
         const totalTime = (conversionEndTime - downloadStartTime) / 1000;
         console.log(`✅ [LoadBook] ${docInfo.type.toUpperCase()} ready for renderer`);
         console.log(`   ⏱️ Total loading time: ${totalTime.toFixed(2)} seconds`);
@@ -278,10 +304,29 @@ const DocumentReaderScreen = () => {
 
   console.log('🔍 [Render Check] Current state:', {
     loading,
+    showSplash,
     documentType,
     hasDocumentData: !!documentData,
     documentDataSize: documentData ? (documentData.byteLength / 1024 / 1024).toFixed(2) + ' MB' : 'null'
   });
+
+  // Show donation splash screen first (if applicable)
+  if (showSplash && donatedBy && documentData) {
+    console.log('🎬 [Render] Showing donation splash screen...');
+    return (
+      <DonationSplashScreen
+        bookTitle={bookTitle}
+        bookCover={bookCover}
+        donatedBy={donatedBy}
+        donatedAt={donatedAt}
+        onFinish={() => {
+          console.log('✅ [Splash] Finished, switching to reader...');
+          setShowSplash(false);
+        }}
+        duration={3000}
+      />
+    );
+  }
 
   // Loading state
   if (loading) {

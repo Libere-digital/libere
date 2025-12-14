@@ -13,7 +13,7 @@ async function listAllBooks() {
 
   const { data: books, error } = await supabase
     .from('Book')
-    .select('id, title, author')
+    .select('id, title, author, category')
     .order('id', { ascending: true });
 
   if (error) {
@@ -29,7 +29,8 @@ async function listAllBooks() {
   console.log(`✅ Found ${books.length} book(s):\n`);
   books.forEach((book, index) => {
     console.log(`${index + 1}. [ID: ${book.id}] ${book.title}`);
-    console.log(`   Author: ${book.author}\n`);
+    console.log(`   Author: ${book.author}`);
+    console.log(`   Category: ${book.category || 'N/A'}\n`);
   });
 
   // Check for Metamorfosa
