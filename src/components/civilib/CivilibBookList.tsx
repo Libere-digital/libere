@@ -21,8 +21,8 @@ const CivilibBookList = ({ books, libraryAddress }: Props) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   // Get unique categories from books (excluding undefined/null)
-  const categories = ['All', ...Array.from(new Set(
-    books.map(b => b.category).filter(Boolean)
+  const categories: string[] = ['All', ...Array.from(new Set(
+    books.map(b => b.category).filter((cat): cat is string => Boolean(cat))
   ))];
 
   // Filter books by selected category
