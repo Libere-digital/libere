@@ -50,9 +50,13 @@ const AuthScreen = () => {
   return (
     <AuthLayout>
       <div className="flex flex-col justify-center items-center">
-        <span className="text-2xl xl:text-3xl font-extrabold">Libere.</span>
-        <p className="text-sm mt-2 text-dark-600">
-          Libere Revolution Your Books, Your Rules, Your Rewards
+        <img
+          src="/images/Logotype and Mark Green Platform (2).png"
+          alt="Libere Logo"
+          className="h-16 xl:h-20 w-auto"
+        />
+        <p className="text-sm mt-4 text-dark-600">
+          Publish, Buy, Donate Digital Book On Chain
         </p>
       </div>
 

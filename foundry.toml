@@ -1,0 +1,35 @@
+[profile.default]
+src = "smartcontract"
+out = "out"
+libs = ["node_modules"]
+remappings = [
+    "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+    "@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/",
+    "forge-std/=node_modules/forge-std/src/"
+]
+
+# Solidity compiler version
+solc = "0.8.20"
+
+# Optimizer settings (match with original contracts)
+optimizer = true
+optimizer_runs = 200
+
+# EVM version
+evm_version = "shanghai"
+
+# Enable FFI for script utilities
+ffi = true
+fs_permissions = [
+    { access = "read-write", path = "./smartcontract/upgradeable/" }
+]
+
+# RPC endpoints
+[rpc_endpoints]
+base-sepolia = "${BASE_SEPOLIA_RPC_URL}"
+base = "${BASE_MAINNET_RPC_URL}"
+
+# Etherscan API keys for verification
+[etherscan]
+base-sepolia = { key = "${BASESCAN_API_KEY}", url = "https://api-sepolia.basescan.org/api" }
+base = { key = "${BASESCAN_API_KEY}", url = "https://api.basescan.org/api" }

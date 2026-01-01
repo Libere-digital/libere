@@ -58,11 +58,11 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/auth" element={<AuthScreen />} />
           <Route path="/books" element={<HomeScreen />} />
           <Route path="/books/:id" element={<BookDetailScreen />} />
+          <Route path="/libraries/:id" element={<LibraryDetailScreen />} />
 
           {/* Protected routes - require authentication */}
           <Route element={<ProtectedRoute />}>
             <Route path="/libraries" element={<LibraryListScreen />} />
-            <Route path="/libraries/:id" element={<LibraryDetailScreen />} />
             <Route path="/bookselfs" element={<BookselfScreen />} />
             {/* Temporarily hidden - Publish Book route */}
             {/* <Route path="/publish" element={<CreateBookV2Screen />} /> */}

@@ -128,28 +128,16 @@ const Navbar = () => {
               Store
             </NavLink>
             {authenticated && (
-              <>
-                <NavLink
-                  to="/libraries"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "block text-zinc-900 font-semibold text-sm border-b-2 border-zinc-900 pb-1"
-                      : "block text-zinc-500 text-sm hover:text-zinc-900 transition-colors pb-1"
-                  }
-                >
-                  Library
-                </NavLink>
-                <NavLink
-                  to="/bookselfs"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "block text-zinc-900 font-semibold text-sm border-b-2 border-zinc-900 pb-1"
-                      : "block text-zinc-500 text-sm hover:text-zinc-900 transition-colors pb-1"
-                  }
-                >
-                  My Bookself
-                </NavLink>
-              </>
+              <NavLink
+                to="/libraries"
+                className={({ isActive }) =>
+                  isActive
+                    ? "block text-zinc-900 font-semibold text-sm border-b-2 border-zinc-900 pb-1"
+                    : "block text-zinc-500 text-sm hover:text-zinc-900 transition-colors pb-1"
+                }
+              >
+                Library
+              </NavLink>
             )}
           </ul>
         </div>
@@ -158,15 +146,33 @@ const Navbar = () => {
         <div className="hidden lg:flex items-center gap-3">
           {authenticated ? (
             client ? (
-              // Account dropdown - Wallet is ready
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-zinc-300 hover:bg-zinc-50 transition-colors"
+              <>
+                {/* My Bookshelf Button */}
+                <NavLink
+                  to="/bookselfs"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                      isActive
+                        ? "border-zinc-900 bg-zinc-900 text-white"
+                        : "border-zinc-300 hover:bg-zinc-50 text-zinc-700"
+                    }`
+                  }
                 >
-                  <FaUserCircle className="text-zinc-600 text-xl" />
-                  <span className="text-sm font-medium text-zinc-900 hidden xl:inline">{username}</span>
-                </button>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  <span className="text-sm font-medium hidden xl:inline">My Bookshelf</span>
+                </NavLink>
+
+                {/* Account dropdown - Wallet is ready */}
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-zinc-300 hover:bg-zinc-50 transition-colors"
+                  >
+                    <FaUserCircle className="text-zinc-600 text-xl" />
+                    <span className="text-sm font-medium text-zinc-900 hidden xl:inline">{username}</span>
+                  </button>
 
                 {dropdownOpen && (
                   <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-zinc-200 py-2 z-50">
@@ -223,7 +229,8 @@ const Navbar = () => {
                     </div>
                   </div>
                 )}
-              </div>
+                </div>
+              </>
             ) : (
               // Loading wallet - No manual button needed
               <div className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-600">
@@ -268,30 +275,17 @@ const Navbar = () => {
               Store
             </NavLink>
             {authenticated && (
-              <>
-                <NavLink
-                  to="/libraries"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    isActive
-                      ? "block px-4 py-3 text-zinc-900 font-semibold bg-amber-50 rounded-lg"
-                      : "block px-4 py-3 text-zinc-600 hover:bg-zinc-50 rounded-lg transition-colors"
-                  }
-                >
-                  Library
-                </NavLink>
-                <NavLink
-                  to="/bookselfs"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    isActive
-                      ? "block px-4 py-3 text-zinc-900 font-semibold bg-amber-50 rounded-lg"
-                      : "block px-4 py-3 text-zinc-600 hover:bg-zinc-50 rounded-lg transition-colors"
-                  }
-                >
-                  My Bookself
-                </NavLink>
-              </>
+              <NavLink
+                to="/libraries"
+                onClick={() => setMobileMenuOpen(false)}
+                className={({ isActive }) =>
+                  isActive
+                    ? "block px-4 py-3 text-zinc-900 font-semibold bg-amber-50 rounded-lg"
+                    : "block px-4 py-3 text-zinc-600 hover:bg-zinc-50 rounded-lg transition-colors"
+                }
+              >
+                Library
+              </NavLink>
             )}
 
             {/* Mobile User Section */}
@@ -330,6 +324,18 @@ const Navbar = () => {
                         </div>
                       )}
                     </div>
+
+                    {/* My Bookshelf Link */}
+                    <NavLink
+                      to="/bookselfs"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-center gap-2 w-full px-4 py-3 mb-2 text-sm font-medium text-zinc-900 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                      My Bookshelf
+                    </NavLink>
 
                     {/* Logout Button */}
                     <button

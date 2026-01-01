@@ -217,7 +217,7 @@ const BookselfScreen = () => {
             >
               &larr; Back
             </button>
-            <h2 className="text-4xl md:text-5xl font-extrabold">My Bookself</h2>
+            <h2 className="text-4xl md:text-5xl font-extrabold">My Bookshelf</h2>
             <p className="text-base md:text-lg max-w-2xl">
               Your personal space to view, track, and enjoy books you own or
               borrow — all in one organized collection, ready anytime whether

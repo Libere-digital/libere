@@ -4,14 +4,16 @@ import CivilibBookCard from "./CivilibBookCard";
 import { useSmartWallets } from "@privy-io/react-auth/smart-wallets";
 import { baseSepolia } from "viem/chains";
 import type { Book } from "../../core/interfaces/book.interface";
+import { getCategoryColors } from "../../utils/categoryColors";
 
 interface Props {
   books: Book[];
   isLoading: boolean;
   libraryAddress?: string; // Optional: specific library pool address
+  useMonochromeColors?: boolean; // Enable for The Room 19
 }
 
-const CivilibBookList = ({ books, libraryAddress }: Props) => {
+const CivilibBookList = ({ books, libraryAddress, useMonochromeColors = false }: Props) => {
   const { client } = useSmartWallets();
   const clientPublic = createPublicClient({
     chain: baseSepolia,
@@ -33,26 +35,30 @@ const CivilibBookList = ({ books, libraryAddress }: Props) => {
   return (
     <section className="w-full flex justify-center items-center">
       <div className="w-full">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-3xl font-bold">Books</h2>
-        </div>
-
         {/* Category Filter Tabs */}
         {categories.length > 1 && (
           <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                  selectedCategory === category
-                    ? 'bg-amber-500 text-white shadow-md'
-                    : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
+            {categories.map((category) => {
+              const colors = useMonochromeColors ? getCategoryColors(category) : null;
+
+              return (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                    selectedCategory === category
+                      ? useMonochromeColors
+                        ? `${colors!.bgActive} ${colors!.textActive} shadow-md`
+                        : 'bg-amber-500 text-white shadow-md'
+                      : useMonochromeColors
+                        ? `${colors!.bg} ${colors!.text} ${colors!.bgHover}`
+                        : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+                  }`}
+                >
+                  {category}
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -65,6 +71,7 @@ const CivilibBookList = ({ books, libraryAddress }: Props) => {
               client={client}
               clientPublic={clientPublic}
               libraryAddress={libraryAddress}
+              useMonochromeColors={useMonochromeColors}
             />
           ))}
         </ul>

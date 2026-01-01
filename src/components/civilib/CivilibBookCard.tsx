@@ -11,9 +11,10 @@ interface Props {
   client: any;
   clientPublic: any;
   libraryAddress?: string; // Optional: specific library pool address
+  useMonochromeColors?: boolean; // Enable for The Room 19
 }
 
-const CivilibBookCard = ({ book, client, clientPublic, libraryAddress }: Props) => {
+const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonochromeColors = false }: Props) => {
   const [totalStock, setTotalStock] = useState(0);
   const [frozenNow, setFrozenNow] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -124,7 +125,11 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress }: Props) 
           {/* Category Badge */}
           {book.category && (
             <div className="mt-2">
-              <CategoryBadge category={book.category} size="sm" />
+              <CategoryBadge
+                category={book.category}
+                size="sm"
+                useMonochromeColors={useMonochromeColors}
+              />
             </div>
           )}
           <div className="flex flex-col items-start justify-start mt-3 mb-3 w-full gap-2">

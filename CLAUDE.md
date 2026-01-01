@@ -129,7 +129,7 @@ src/
 ├── components/         # Reusable UI components
 │   ├── civilib/       # Library-specific components
 │   ├── bookself/      # Bookshelf-specific components
-│   ├── layouts/       # Layout wrappers (AuthLayout, HomeLayout)
+│   ├── layouts/       # Layout wrappers (AuthLayout, HomeLayout, StandaloneLayout)
 │   ├── reader/        # EPUB reader components (WatermarkOverlay)
 │   └── buttons/       # Button components (GoogleAuthButton)
 ├── providers/          # Context providers (PrivyProvider)
@@ -139,9 +139,14 @@ src/
 │   ├── interfaces/    # TypeScript interfaces (Book, Library)
 │   └── constants/     # Constants (ETH_PRICE)
 ├── libs/              # External service configs (supabase, config)
+├── utils/             # Utility functions (categoryColors, documentType)
 ├── smart-contract.abi.ts  # Main contract ABI + address
 ├── library-pool.abi.ts    # Library pool contract ABI + address
 └── usdc-token.ts          # USDC token address + decimals
+
+smartcontract/          # Smart contract source code (Solidity)
+├── upgradeable/       # UUPS upgradeable contract implementations
+└── test/              # Foundry test suite
 ```
 
 ### Key Interfaces
@@ -425,6 +430,94 @@ All readers (EPUB, PDF, audiobook) include [WatermarkOverlay](src/components/rea
 - Borrow expiry countdown (for borrowed books)
 - Diagonal repeating pattern for security
 
+## Category System
+
+The app uses a monochrome grayscale category color scheme (The Room 19 aesthetic):
+
+**Categories**: 'Fiksi', 'Non-Fiksi', 'Sejarah', 'Teknologi', 'Seni', 'All'
+
+**Usage**:
+```typescript
+import { getCategoryColors, getCategoryBadgeColors } from '@/utils/categoryColors';
+
+// Get full color scheme for a category
+const colors = getCategoryColors('Fiksi');
+// Returns: { bg, bgHover, bgActive, text, textActive, border }
+
+// Get badge-specific colors
+const badgeColors = getCategoryBadgeColors('Teknologi');
+// Returns: { bg, text, border }
+```
+
+Located in [src/utils/categoryColors.ts](src/utils/categoryColors.ts).
+
+## Layout Components
+
+### StandaloneLayout
+A minimal layout for library-specific standalone pages (e.g., The Room 19):
+
+**Props**:
+- `librarySlug?: string` - Library identifier (e.g., 'theroom19')
+- `libraryLogo?: string` - Path to library logo image
+- `showScrollNav?: boolean` - Enable scroll-to-section navigation (Home, Reservation, Maps)
+
+**Features**:
+- Sticky header with library branding
+- Wallet connection dropdown (username, address, copy, logout)
+- Smooth scroll navigation for single-page library sites
+- Minimal monochrome design
+
+Located in [src/components/layouts/StandaloneLayout.tsx](src/components/layouts/StandaloneLayout.tsx).
+
+## Smart Contract Development
+
+The repository includes smart contract source code and development tooling:
+
+### Foundry Setup
+```bash
+# Install Foundry (if not already installed)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# Compile contracts
+forge build
+
+# Run tests
+forge test
+
+# Run tests with gas reporting
+forge test --gas-report
+
+# Deploy/upgrade scripts (requires env vars)
+forge script smartcontract/upgradeable/Deploy.s.sol --rpc-url base-sepolia --broadcast
+```
+
+### Environment Variables for Contract Development
+Add to `.env` for Foundry scripts:
+```env
+# RPC Endpoints
+BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
+BASE_MAINNET_RPC_URL=https://mainnet.base.org
+
+# Basescan API Key (for verification)
+BASESCAN_API_KEY=your_basescan_api_key
+
+# Private key for deployment (DO NOT COMMIT)
+PRIVATE_KEY=your_private_key_here
+```
+
+### Contract Structure
+- **upgradeable/** - UUPS upgradeable implementations (current production)
+  - `Libere1155CoreUpgradeable.sol` - Main marketplace contract
+  - `LibraryPoolUpgradeable.sol` - Library borrowing pool
+  - `Deploy.s.sol` - Deployment script
+  - `Upgrade.s.sol` - Upgrade script
+- **test/** - Foundry test suite with helpers and mocks
+- **core_1155.sol** - Legacy non-upgradeable version
+- **library-libere.sol** - Legacy library contract
+
+**Solidity Version**: 0.8.20 with Shanghai EVM target
+
 ## Admin Publishing Tool
 
 **Note**: The admin-publish directory does not exist in the current codebase. Publishing is currently disabled due to the `onlyOwner` contract restriction. See [SOLUTION_ONLYOWNER_ISSUE.md](SOLUTION_ONLYOWNER_ISSUE.md) for workarounds.
@@ -438,7 +531,8 @@ The app is configured as a PWA with offline support and can be installed on devi
 - **Offline Caching**: Images and API responses cached for offline access
 - **Installable**: Can be installed as standalone app on desktop/mobile
 - **Workbox Caching Strategies**:
-  - Document files (EPUB/PDF): NetworkOnly (NEVER cached for security - prevents unauthorized offline access)
+  - EPUB files: NetworkOnly (NEVER cached - prevents unauthorized offline access via regex pattern)
+  - PDF files: NetworkOnly (NOT explicitly blocked by regex, but not cached via globPatterns)
   - Audiobook files (MP3): CacheFirst (7 day cache, 10MB limit) - allows offline listening
   - Supabase signed URLs: NetworkOnly (expire quickly, should not be cached)
   - Supabase API: NetworkFirst (5 min cache)
@@ -447,7 +541,11 @@ The app is configured as a PWA with offline support and can be installed on devi
 ### PWA Configuration
 Located in [vite.config.ts](vite.config.ts) using `vite-plugin-pwa`. Service worker registers automatically in [main.tsx](src/main.tsx:17-47).
 
-**Security Note**: Both EPUB and PDF files are intentionally excluded from caching to prevent unauthorized offline access. Users can only read books while authenticated and with valid access rights. Audiobooks are cached for offline listening convenience, with a 10MB file size limit per file.
+**Security Note**:
+- EPUB files are explicitly blocked from caching via regex pattern matching `.epub` URLs
+- PDF files are not cached (not included in globPatterns, no explicit regex block)
+- Users can only read books while authenticated and with valid access rights
+- Audiobooks are cached for offline listening convenience, with a 10MB file size limit per file
 
 ## Utility Scripts
 
@@ -473,14 +571,21 @@ npm run migrate:epubs
 
 Located in [scripts/migrate-epubs-to-supabase.ts](scripts/migrate-epubs-to-supabase.ts).
 
-### Testing Scripts
+### Other Utility Scripts
 ```bash
 # Test Supabase connection
 npm run test:supabase
 
 # Simple migration utility
 npm run migrate:simple
+
+# Additional scripts (not in package.json, run with tsx):
+npx tsx scripts/debug-library-access.ts        # Debug library borrowing access
+npx tsx scripts/update-metamorfosa-audiobook.ts # Update specific book's audiobook
+npx tsx scripts/list-books.ts                   # List all books from database
 ```
+
+All utility scripts are located in the `scripts/` directory and can be run with `tsx` or via npm scripts.
 
 ## Known Issues & Workarounds
 
