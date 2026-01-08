@@ -1,4 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/**
+ * CivilibAccessButton - Library Book Borrow/Return Button
+ *
+ * Handles borrowing and returning books from different library pool contracts.
+ *
+ * Contract Differences:
+ * - The Room 19 (0xA31D6d3f2a6C5fBA99E451CCAAaAdf0bca12cbF0): Old contract with getActiveBorrows() - returns expiry time
+ * - Bandung (0x8A6A31868Ef2b779B838828367B7ED8BE6DFfFAB): New contract, use usableBalanceOf() only
+ * - Block71 (0x92b34b5000452D6793dFA4012bBDAa676D8C35A0): New contract, use usableBalanceOf() only
+ */
 import { encodeFunctionData } from "viem";
 import { baseSepolia } from "viem/chains";
 import { useEffect, useState } from "react";
@@ -39,38 +49,48 @@ const CivilibAccessButton = ({
     const checkBorrowStatus = async () => {
       if (!clientPublic || !smartWalletAddress) return;
 
-      try {
-        // Try getActiveBorrows first (works for The Room 19 with old contract)
-        const activeBorrows: any = await clientPublic.readContract({
-          address: effectiveLibraryAddress,
-          abi: libraryPoolABI,
-          functionName: "getActiveBorrows",
-          args: [smartWalletAddress],
-        });
+      // The Room 19 uses old contract with getActiveBorrows
+      // Bandung & Block71 use new contract with usableBalanceOf only
+      const isTheRoom19 = effectiveLibraryAddress.toLowerCase() === libraryPoolAddress.toLowerCase();
 
-        // Check if user has borrowed this specific book
-        const borrowForThisBook = activeBorrows.find(
-          (borrow: any) => Number(borrow.tokenId) === bookId
-        );
+      if (isTheRoom19) {
+        // The Room 19: Use getActiveBorrows (returns expiry time)
+        try {
+          const activeBorrows: any = await clientPublic.readContract({
+            address: effectiveLibraryAddress,
+            abi: libraryPoolABI,
+            functionName: "getActiveBorrows",
+            args: [smartWalletAddress],
+          });
 
-        if (borrowForThisBook) {
-          setHasBorrowed(true);
-          const expiryTimestamp = Number(borrowForThisBook.expiry);
+          // Check if user has borrowed this specific book
+          const borrowForThisBook = activeBorrows.find(
+            (borrow: any) => Number(borrow.tokenId) === bookId
+          );
 
-          // Notify parent component about expiry
-          if (onBorrowStatusChange) {
-            onBorrowStatusChange(expiryTimestamp);
+          if (borrowForThisBook) {
+            setHasBorrowed(true);
+            const expiryTimestamp = Number(borrowForThisBook.expiry);
+
+            // Notify parent component about expiry
+            if (onBorrowStatusChange) {
+              onBorrowStatusChange(expiryTimestamp);
+            }
+          } else {
+            setHasBorrowed(false);
+            if (onBorrowStatusChange) {
+              onBorrowStatusChange(null);
+            }
           }
-        } else {
+        } catch (error) {
+          console.error("The Room 19 getActiveBorrows failed:", error);
           setHasBorrowed(false);
           if (onBorrowStatusChange) {
             onBorrowStatusChange(null);
           }
         }
-      } catch (error) {
-        console.error("getActiveBorrows failed, trying usableBalanceOf fallback:", error);
-
-        // Fallback: use usableBalanceOf (works for Bandung with new contract)
+      } else {
+        // Bandung & Block71: Use usableBalanceOf (no expiry info)
         try {
           const usableBalance: any = await clientPublic.readContract({
             address: effectiveLibraryAddress,
@@ -83,12 +103,12 @@ const CivilibAccessButton = ({
           setHasBorrowed(hasBorrow);
 
           // Note: usableBalanceOf doesn't return expiry, so we can't show countdown
-          // We could fetch it from userRecordOf if needed
+          // Pass 1 as placeholder to indicate "borrowed" status
           if (onBorrowStatusChange) {
-            onBorrowStatusChange(hasBorrow ? 1 : null); // Pass 1 as placeholder, or fetch actual expiry
+            onBorrowStatusChange(hasBorrow ? 1 : null);
           }
-        } catch (fallbackError) {
-          console.error("Both getActiveBorrows and usableBalanceOf failed:", fallbackError);
+        } catch (error) {
+          console.error("Bandung/Block71 usableBalanceOf failed:", error);
           setHasBorrowed(false);
           if (onBorrowStatusChange) {
             onBorrowStatusChange(null);
@@ -129,32 +149,36 @@ const CivilibAccessButton = ({
         setStatusMessage("");
         setLoading(false);
 
-        // Fetch updated borrow status with expiry
-        try {
-          // Try getActiveBorrows first
-          const activeBorrows: any = await clientPublic.readContract({
-            address: effectiveLibraryAddress,
-            abi: libraryPoolABI,
-            functionName: "getActiveBorrows",
-            args: [smartWalletAddress],
-          });
+        // Detect which contract method to use
+        const isTheRoom19 = effectiveLibraryAddress.toLowerCase() === libraryPoolAddress.toLowerCase();
 
-          const borrowForThisBook = activeBorrows.find(
-            (borrow: any) => Number(borrow.tokenId) === bookId
-          );
+        if (isTheRoom19) {
+          // The Room 19: Use getActiveBorrows
+          try {
+            const activeBorrows: any = await clientPublic.readContract({
+              address: effectiveLibraryAddress,
+              abi: libraryPoolABI,
+              functionName: "getActiveBorrows",
+              args: [smartWalletAddress],
+            });
 
-          if (borrowForThisBook) {
-            setHasBorrowed(true);
-            const expiryTimestamp = Number(borrowForThisBook.expiry);
+            const borrowForThisBook = activeBorrows.find(
+              (borrow: any) => Number(borrow.tokenId) === bookId
+            );
 
-            if (onBorrowStatusChange) {
-              onBorrowStatusChange(expiryTimestamp);
+            if (borrowForThisBook) {
+              setHasBorrowed(true);
+              const expiryTimestamp = Number(borrowForThisBook.expiry);
+
+              if (onBorrowStatusChange) {
+                onBorrowStatusChange(expiryTimestamp);
+              }
             }
+          } catch (error) {
+            console.error("The Room 19 getActiveBorrows failed after borrow:", error);
           }
-        } catch (error) {
-          console.error("getActiveBorrows failed after borrow, using usableBalanceOf fallback:", error);
-
-          // Fallback: use usableBalanceOf
+        } else {
+          // Bandung & Block71: Use usableBalanceOf
           try {
             const usableBalance: any = await clientPublic.readContract({
               address: effectiveLibraryAddress,
@@ -169,8 +193,8 @@ const CivilibAccessButton = ({
             if (onBorrowStatusChange && hasBorrow) {
               onBorrowStatusChange(1); // Placeholder since we don't have expiry
             }
-          } catch (fallbackError) {
-            console.error("Error fetching updated borrow status (both methods):", fallbackError);
+          } catch (error) {
+            console.error("Bandung/Block71 usableBalanceOf failed after borrow:", error);
           }
         }
       }, 2000);

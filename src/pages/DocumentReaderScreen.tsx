@@ -76,24 +76,47 @@ const DocumentReaderScreen = () => {
         // ===== CHECK 2: Library Borrowing (ERC-5006) =====
         console.log('📚 [Access Check] Checking library borrow status...');
 
-        const usableBalance = await publicClient.readContract({
-          address: libraryPoolAddress as `0x${string}`,
-          abi: libraryPoolABI,
-          functionName: 'usableBalanceOf',
-          args: [addressToCheck as `0x${string}`, BigInt(bookId)],
-        }) as bigint;
+        // Check all 3 libraries for borrowed books
+        const LIBRARY_ADDRESSES = {
+          'theroom19': '0xA31D6d3f2a6C5fBA99E451CCAAaAdf0bca12cbF0',
+          'bandung': '0x8A6A31868Ef2b779B838828367B7ED8BE6DFfFAB',
+          'block71': '0x92b34b5000452D6793dFA4012bBDAa676D8C35A0',
+        };
 
-        console.log('   Usable balance (borrowed):', usableBalance.toString());
+        let hasBorrow = false;
+        let borrowLibrary: string | null = null;
 
-        const usableBalanceBigInt = usableBalance;
+        // Check each library
+        for (const [libraryName, libraryAddr] of Object.entries(LIBRARY_ADDRESSES)) {
+          try {
+            console.log(`   Checking ${libraryName}...`);
+            const usableBalance = await publicClient.readContract({
+              address: libraryAddr as `0x${string}`,
+              abi: libraryPoolABI,
+              functionName: 'usableBalanceOf',
+              args: [addressToCheck as `0x${string}`, BigInt(bookId)],
+            }) as bigint;
+
+            console.log(`   ${libraryName} usable balance:`, usableBalance.toString());
+
+            if (usableBalance > 0n) {
+              hasBorrow = true;
+              borrowLibrary = libraryName;
+              console.log(`   ✅ Found borrow in ${libraryName}!`);
+              break; // Stop checking once we find one
+            }
+          } catch (error) {
+            console.log(`   ⚠️ Could not check ${libraryName}:`, error);
+          }
+        }
 
         // ===== SET ACCESS STATES =====
         const hasNFT = (balance as any) > 0n;
-        const hasBorrow = usableBalanceBigInt > 0n;
 
         console.log('🎯 [FINAL CHECK]', {
           hasNFT,
           hasBorrow,
+          borrowLibrary,
           willGrantAccess: hasNFT || hasBorrow
         });
 
@@ -103,31 +126,37 @@ const DocumentReaderScreen = () => {
         if (hasNFT) {
           console.log('✅ [Access Check] User OWNS this book NFT (purchased)');
           setBorrowExpiry(null);
-        } else if (hasBorrow) {
-          console.log('✅ [Access Check] User has BORROWED this book from library');
+        } else if (hasBorrow && borrowLibrary) {
+          console.log(`✅ [Access Check] User has BORROWED this book from ${borrowLibrary}`);
 
-          // Get expiry from getActiveBorrows
-          try {
-            const activeBorrows: any = await publicClient.readContract({
-              address: libraryPoolAddress as `0x${string}`,
-              abi: libraryPoolABI,
-              functionName: 'getActiveBorrows',
-              args: [addressToCheck as `0x${string}`],
-            });
+          // Get expiry ONLY from The Room 19 (has getActiveBorrows)
+          if (borrowLibrary === 'theroom19') {
+            try {
+              const activeBorrows: any = await publicClient.readContract({
+                address: LIBRARY_ADDRESSES[borrowLibrary as keyof typeof LIBRARY_ADDRESSES] as `0x${string}`,
+                abi: libraryPoolABI,
+                functionName: 'getActiveBorrows',
+                args: [addressToCheck as `0x${string}`],
+              });
 
-            const borrowForThisBook = activeBorrows.find(
-              (borrow: any) => Number(borrow.tokenId) === Number(bookId)
-            );
+              const borrowForThisBook = activeBorrows.find(
+                (borrow: any) => Number(borrow.tokenId) === Number(bookId)
+              );
 
-            if (borrowForThisBook) {
-              const expiryTimestamp = Number(borrowForThisBook.expiry);
-              setBorrowExpiry(expiryTimestamp);
-              console.log('   Expiry:', new Date(expiryTimestamp * 1000).toLocaleString());
-            } else {
+              if (borrowForThisBook) {
+                const expiryTimestamp = Number(borrowForThisBook.expiry);
+                setBorrowExpiry(expiryTimestamp);
+                console.log('   Expiry:', new Date(expiryTimestamp * 1000).toLocaleString());
+              } else {
+                setBorrowExpiry(null);
+              }
+            } catch (e) {
+              console.log('   Could not fetch expiry details from The Room 19');
               setBorrowExpiry(null);
             }
-          } catch (e) {
-            console.log('   Could not fetch expiry details');
+          } else {
+            // Bandung & Block71: No expiry info available
+            console.log(`   Note: ${borrowLibrary} does not provide expiry info`);
             setBorrowExpiry(null);
           }
         } else {
