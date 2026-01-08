@@ -14,7 +14,6 @@ interface StandaloneLayoutProps {
 
 const StandaloneLayout: React.FC<StandaloneLayoutProps> = ({
   children,
-  librarySlug,
   libraryLogo,
   libraryName,
   libraryTagline,
