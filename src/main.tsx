@@ -55,30 +55,30 @@ createRoot(document.getElementById("root")!).render(
         <BrowserRouter>
           <SubdomainRouter>
             <Routes>
-          {/* Public routes - accessible without login */}
-          <Route path="/" element={<Navigate to="/books" replace />} />
-          <Route path="/auth" element={<AuthScreen />} />
-          <Route path="/books" element={<HomeScreen />} />
-          <Route path="/books/:id" element={<BookDetailScreen />} />
-          <Route path="/libraries/:id" element={<LibraryDetailScreen />} />
+              {/* Public routes - accessible without login */}
+              <Route path="/" element={<Navigate to="/books" replace />} />
+              <Route path="/auth" element={<AuthScreen />} />
+              <Route path="/books" element={<HomeScreen />} />
+              <Route path="/books/:id" element={<BookDetailScreen />} />
+              <Route path="/libraries/:id" element={<LibraryDetailScreen />} />
 
-          {/* Protected routes - require authentication */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/libraries" element={<LibraryListScreen />} />
-            <Route path="/bookselfs" element={<BookselfScreen />} />
-            {/* Temporarily hidden - Publish Book route */}
-            {/* <Route path="/publish" element={<CreateBookV2Screen />} /> */}
-            {/* Unified reader for both EPUB and PDF - auto-detects type */}
-            <Route path="/read-book/:id" element={<DocumentReaderScreen />} />
-            {/* Old PDF route redirects to unified reader for backward compatibility */}
-            <Route path="/read-pdf/:id" element={<Navigate to="/read-book/:id" replace />} />
-            {/* Audiobook player - protected route */}
-            <Route path="/listen-audiobook/:id" element={<AudiobookPlayerScreen />} />
-          </Route>
+              {/* Protected routes - require authentication */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/libraries" element={<LibraryListScreen />} />
+                <Route path="/bookselfs" element={<BookselfScreen />} />
+                {/* Temporarily hidden - Publish Book route */}
+                {/* <Route path="/publish" element={<CreateBookV2Screen />} /> */}
+                {/* Unified reader for both EPUB and PDF - auto-detects type */}
+                <Route path="/read-book/:id" element={<DocumentReaderScreen />} />
+                {/* Old PDF route redirects to unified reader for backward compatibility */}
+                <Route path="/read-pdf/:id" element={<Navigate to="/read-book/:id" replace />} />
+                {/* Audiobook player - protected route */}
+                <Route path="/listen-audiobook/:id" element={<AudiobookPlayerScreen />} />
+              </Route>
 
-          {/* Fallback redirect */}
-          <Route path="*" element={<Navigate to="/books" replace />} />
-        </Routes>
+              {/* Fallback redirect */}
+              <Route path="*" element={<Navigate to="/books" replace />} />
+            </Routes>
           </SubdomainRouter>
         </BrowserRouter>
       </CurrencyProvider>
