@@ -18,13 +18,25 @@ const SubdomainRouter = ({ children }: { children: React.ReactNode }) => {
     const hostname = window.location.hostname;
     const librarySlug = getLibraryFromSubdomain(hostname);
 
-    // If we're on a library subdomain
+    console.log('🌐 [SubdomainRouter] Hostname:', hostname);
+    console.log('   Library slug:', librarySlug || 'none (main platform)');
+    console.log('   Current path:', location.pathname);
+    console.log('   Is library subdomain?', isLibrarySubdomain(hostname));
+
+    // If we're on a library subdomain (theroom19, bandung, block71)
     if (isLibrarySubdomain(hostname) && librarySlug) {
+      console.log('✅ [SubdomainRouter] On library subdomain:', librarySlug);
+
       // Only redirect if we're not already on the library page
       if (!location.pathname.startsWith(`/libraries/${librarySlug}`)) {
+        console.log('🔀 [SubdomainRouter] Redirecting to /libraries/' + librarySlug);
         // Redirect to library detail page
         navigate(`/libraries/${librarySlug}`, { replace: true });
+      } else {
+        console.log('✅ [SubdomainRouter] Already on library page');
       }
+    } else {
+      console.log('✅ [SubdomainRouter] Main platform - no redirect');
     }
 
     setIsReady(true);
