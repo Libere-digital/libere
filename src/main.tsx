@@ -15,6 +15,7 @@ import DocumentReaderScreen from "./pages/DocumentReaderScreen.tsx";
 import AudiobookPlayerScreen from "./pages/AudiobookPlayerScreen.tsx";
 import { CurrencyProvider } from "./contexts/CurrencyContext.tsx";
 import ProtectedRoute from "./routes/ProtectedRoute.tsx";
+import SubdomainRouter from "./routes/SubdomainRouter.tsx";
 import { registerSW } from "virtual:pwa-register";
 
 window.Buffer = Buffer;
@@ -52,7 +53,8 @@ createRoot(document.getElementById("root")!).render(
     <Providers>
       <CurrencyProvider>
         <BrowserRouter>
-        <Routes>
+          <SubdomainRouter>
+            <Routes>
           {/* Public routes - accessible without login */}
           <Route path="/" element={<Navigate to="/books" replace />} />
           <Route path="/auth" element={<AuthScreen />} />
@@ -77,6 +79,7 @@ createRoot(document.getElementById("root")!).render(
           {/* Fallback redirect */}
           <Route path="*" element={<Navigate to="/books" replace />} />
         </Routes>
+          </SubdomainRouter>
         </BrowserRouter>
       </CurrencyProvider>
     </Providers>

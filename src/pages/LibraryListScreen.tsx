@@ -22,12 +22,27 @@ const LibraryListScreen = () => {
     {
       id: 2,
       slug: 'bandung',
-      name: 'Perpustakaan Digital Kota Bandung',
-      address: '0xA31D6d3f2a6C5fBA99E451CCAAaAdf0bca12cbF0',
+      name: 'Bandung City Digital Library',
+      address: '0x8A6A31868Ef2b779B838828367B7ED8BE6DFfFAB',
       description: 'Dinas Arsip dan Perpustakaan Kota Bandung menyediakan koleksi buku digital untuk masyarakat Bandung',
       logoPath: '/library-logos/bandung.png',
       logoFallback: 'PKB',
       location: 'Jl. Kawaluyaan Indah II No.4, Jatisari, Kec. Buahbatu, Kota Bandung',
+      stats: {
+        books: 98,
+        members: 843,
+        copies: 267
+      }
+    },
+    {
+      id: 3,
+      slug: 'block71',
+      name: 'Block 71 Indonesia',
+      address: '0x92b34b5000452D6793dFA4012bBDAa676D8C35A0',
+      description: 'Global network of entrepreneurial hubs by NUS Enterprise, fostering innovation and connecting tech startups across Jakarta, Bandung, Singapore, and beyond.',
+      logoPath: '/library-logos/block71.png',
+      logoFallback: 'B71',
+      location: 'Kuningan, Jakarta Selatan',
       stats: {
         books: 98,
         members: 843,
@@ -74,7 +89,13 @@ const LibraryListScreen = () => {
                   {/* Library Card */}
                   <div className="bg-white rounded-2xl border border-zinc-200 shadow-md hover:shadow-xl transition-all duration-300">
                 {/* Header with extra padding top for logo */}
-                <div className="relative h-40 bg-gradient-to-br from-amber-100 to-yellow-100">
+                <div className={`relative h-40 ${
+                  library.slug === 'block71'
+                    ? 'bg-gradient-to-br from-[#0A4D68] to-[#05BFDB]'
+                    : library.slug === 'theroom19'
+                      ? 'bg-gradient-to-br from-zinc-900 to-zinc-700'
+                      : 'bg-gradient-to-br from-amber-100 to-yellow-100'
+                }`}>
                   <div
                     className="absolute inset-0 bg-cover bg-center opacity-40"
                     style={{

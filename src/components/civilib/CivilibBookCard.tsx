@@ -19,6 +19,7 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
   const [frozenNow, setFrozenNow] = useState(0);
   const [loading, setLoading] = useState(true);
   const [userBorrowExpiry, setUserBorrowExpiry] = useState<number | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const availableBooks = totalStock - frozenNow;
   const isBookAvailable = availableBooks > 0;
@@ -65,7 +66,7 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
 
         // Fetch frozen/borrowed count from library pool contract
         const availabilityData: any = await clientPublic.readContract({
-          address: libraryPoolAddress,
+          address: effectiveLibraryAddress,
           abi: libraryPoolABI,
           functionName: "previewAvailability",
           args: [BigInt(book.id)],
@@ -86,7 +87,7 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
     };
 
     fetchBookAvailability();
-  }, [clientPublic, book.id]);
+  }, [clientPublic, book.id, effectiveLibraryAddress, refreshTrigger]);
 
   return (
     <li className="w-full">
@@ -153,9 +154,15 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
                   Availability: {availableBooks}/{totalStock}
                 </span>
                 {/* Show expiry time if user has borrowed this book */}
-                {userBorrowExpiry && (
+                {userBorrowExpiry && userBorrowExpiry > 1 && (
                   <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-sm">
                     Due: {formatExpiryTime(userBorrowExpiry)}
+                  </span>
+                )}
+                {/* Show "Borrowed" badge if expiry is placeholder (value = 1) */}
+                {userBorrowExpiry === 1 && (
+                  <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-sm">
+                    Currently Borrowed
                   </span>
                 )}
               </>
@@ -168,7 +175,11 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
               isBookAvailable={isBookAvailable}
               bookId={book.id}
               smartWalletAddress={client?.account.address}
-              onBorrowStatusChange={(expiry) => setUserBorrowExpiry(expiry)}
+              onBorrowStatusChange={(expiry) => {
+                setUserBorrowExpiry(expiry);
+                // Trigger availability refresh when borrow status changes
+                setRefreshTrigger(prev => prev + 1);
+              }}
               libraryAddress={effectiveLibraryAddress}
             />
           </div>

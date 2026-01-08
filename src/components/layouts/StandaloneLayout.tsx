@@ -7,6 +7,8 @@ interface StandaloneLayoutProps {
   children: React.ReactNode;
   librarySlug?: string;        // e.g., 'theroom19'
   libraryLogo?: string;         // e.g., '/library-logos/room19.png'
+  libraryName?: string;         // e.g., 'Bandung City Digital Library'
+  libraryTagline?: string;      // e.g., 'Dinas Arsip dan Perpustakaan Kota Bandung'
   showScrollNav?: boolean;      // Enable scroll navigation menu
 }
 
@@ -14,6 +16,8 @@ const StandaloneLayout: React.FC<StandaloneLayoutProps> = ({
   children,
   librarySlug,
   libraryLogo,
+  libraryName,
+  libraryTagline,
   showScrollNav = false
 }) => {
   const { authenticated, login, logout, user } = usePrivy();
@@ -66,8 +70,8 @@ const StandaloneLayout: React.FC<StandaloneLayoutProps> = ({
       {/* Minimal header with library logo and navigation (The Room 19) or wallet only (others) */}
       <header className="sticky top-0 bg-white z-50 py-3 border-b border-zinc-200 shadow-sm">
         <div className="flex items-center justify-between max-w-screen-xl mx-auto px-4 sm:px-6">
-          {/* Left section: Logo + Navigation (conditional) */}
-          <div className="flex items-center gap-6">
+          {/* Left section: Logo + Library Info + Navigation (conditional) */}
+          <div className="flex items-center gap-3 sm:gap-6">
             {libraryLogo && (
               <img
                 src={libraryLogo}
@@ -75,6 +79,20 @@ const StandaloneLayout: React.FC<StandaloneLayoutProps> = ({
                 className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-zinc-300"
                 onError={(e) => e.currentTarget.style.display = 'none'}
               />
+            )}
+
+            {/* Library Name & Tagline */}
+            {libraryName && (
+              <div className="flex flex-col">
+                <h1 className="text-sm sm:text-base font-bold text-zinc-900 leading-tight">
+                  {libraryName}
+                </h1>
+                {libraryTagline && (
+                  <p className="text-xs text-zinc-600 hidden sm:block">
+                    {libraryTagline}
+                  </p>
+                )}
+              </div>
             )}
 
             {showScrollNav && (

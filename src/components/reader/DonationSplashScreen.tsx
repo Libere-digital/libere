@@ -26,7 +26,7 @@ const DonationSplashScreen = ({
 
     try {
       const date = new Date(dateString);
-      return new Intl.DateTimeFormat('id-ID', {
+      return new Intl.DateTimeFormat('en-US', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
@@ -132,7 +132,7 @@ const DonationSplashScreen = ({
             {/* Donation message */}
             <div className="text-center">
               <p className="text-lg text-zinc-700 mb-2">
-                Buku ini disumbangkan oleh
+                This book was donated by
               </p>
               <p className="text-2xl font-bold text-amber-600 mb-3">
                 {donatedBy}
@@ -154,7 +154,7 @@ const DonationSplashScreen = ({
 
               {formattedDate && (
                 <p className="text-sm text-zinc-500">
-                  pada tanggal {formattedDate}
+                  on {formattedDate}
                 </p>
               )}
             </div>
@@ -166,7 +166,7 @@ const DonationSplashScreen = ({
 
             {/* Thank you message */}
             <p className="text-center text-sm text-zinc-600 italic">
-              Terima kasih atas kontribusinya untuk literasi Indonesia
+              Thank you for your contribution to Indonesian literacy
             </p>
           </div>
         )}
@@ -188,7 +188,7 @@ const DonationSplashScreen = ({
             }}
             className="text-sm text-zinc-500 hover:text-zinc-700 underline transition-colors"
           >
-            Lewati
+            Skip
           </button>
         </div>
       </div>

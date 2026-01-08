@@ -5,6 +5,7 @@ import config from "../libs/config";
 import CivilibBookList from "../components/civilib/CivilibBookList";
 import type { Book } from "../core/interfaces/book.interface";
 import { contractAddress } from "../smart-contract.abi";
+import ImageCarousel from "../components/carousel/ImageCarousel";
 
 const baseUrl = config.env.supabase.baseUrl;
 
@@ -60,6 +61,30 @@ const libraryThemes: Record<string, LibraryTheme> = {
       linkColor: 'text-white hover:text-zinc-300',
     },
   },
+  'block71': {
+    colors: {
+      primary: '#0A4D68',       // Deep Ocean Blue
+      accent: '#05BFDB',        // Bright Teal
+      background: '#FFFFFF',    // Clean white
+      text: '#1A1A1A',          // Almost black for readability
+      textLight: '#4A5568',     // Slate gray for secondary text
+    },
+    hero: {
+      enabled: true,
+      backgroundGradient: 'from-[#0A4D68] via-[#088395] to-[#05BFDB]',
+    },
+    header: {
+      logoSize: 'w-20 h-20',
+      logoBorder: 'border-2 border-teal-400',
+      titleSize: 'text-4xl sm:text-5xl md:text-6xl',
+      taglineSize: 'text-sm sm:text-base',
+    },
+    footer: {
+      background: 'bg-gradient-to-br from-[#0A4D68] to-[#088395]',
+      iconColor: 'text-teal-400',
+      linkColor: 'text-teal-300 hover:text-white',
+    },
+  },
   'default': {
     colors: {
       primary: '#18181B',       // Zinc-900
@@ -106,12 +131,12 @@ const libraryData = {
   },
   'bandung': {
     id: 2,
-    name: 'Perpustakaan Digital Kota Bandung',
+    name: 'Bandung City Digital Library',
     tagline: 'Dinas Arsip dan Perpustakaan Kota Bandung',
     logoPath: '/library-logos/bandung.png',
     logoFallback: 'PKB',
     instagramUrl: '',
-    poolAddress: '0xA31D6d3f2a6C5fBA99E451CCAAaAdf0bca12cbF0',
+    poolAddress: '0x8A6A31868Ef2b779B838828367B7ED8BE6DFfFAB',
     address: {
       street: 'Jl. Kawaluyaan Indah II No.4, Jatisari',
       city: 'Kec. Buahbatu, Kota Bandung',
@@ -120,7 +145,68 @@ const libraryData = {
     mapEmbed: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.3726449871615!2d107.63588731477454!3d-6.957745995007234!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e68e9ad1e0f1471%3A0x2a211d4736dab1d3!2sDinas%20Arsip%20dan%20Perpustakaan%20Kota%20Bandung%20(Disarpus)!5e0!3m2!1sen!2sid!4v1734175834567!5m2!1sen!2sid',
     mapLink: 'https://www.google.com/maps/place/Dinas+Arsip+dan+Perpustakaan+Kota+Bandung+(Disarpus)/@-6.9577459,107.6358873,17z/data=!3m1!4b1!4m6!3m5!1s0x2e68e9ad1e0f1471:0x2a211d4736dab1d3!8m2!3d-6.9577512!4d107.6384622!16s%2Fg%2F1hc1l6d_1',
   },
+  'block71': {
+    id: 3,
+    name: 'Block 71 Indonesia',
+    tagline: 'Global network of entrepreneurial hubs by NUS Enterprise',
+    logoPath: '/library-logos/block71.png',
+    logoFallback: 'B71',
+    instagramUrl: '',
+    poolAddress: '0x92b34b5000452D6793dFA4012bBDAa676D8C35A0',
+    address: {
+      street: 'Ariobimo Sentral 8th Floor, RT.9/RW.4',
+      city: 'East Kuningan, Setiabudi, Jakarta Selatan',
+      postal: 'DKI Jakarta 12950',
+    },
+    mapEmbed: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3966.2842!2d106.8291!3d-6.2265!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69f3e6c8c8c8c8%3A0x1e9e9e9e9e9e9e9!2sAriobimo%20Sentral%2C%20Kuningan%2C%20Jakarta!5e0!3m2!1sen!2sid!4v1734567890123!5m2!1sen!2sid',
+    mapLink: 'https://jakarta.block71.co/contact',
+  },
 };
+
+// Block 71 Entrepreneurship Insights
+interface NewsInsight {
+  id: number;
+  title: string;
+  excerpt: string;
+  category: 'Startup' | 'Technology' | 'Investment' | 'Event';
+  date: string;
+  imageUrl: string;
+  externalUrl: string;
+  source: string;
+}
+
+const block71Insights: NewsInsight[] = [
+  {
+    id: 1,
+    title: "Microsoft & NUS Enterprise to Fast-Track Growth for 150 AI Startups",
+    excerpt: "Microsoft Enterprise Singapore and NUS Enterprise partner to accelerate AI startup development, providing resources and mentorship for entrepreneurs in Southeast Asia's growing tech ecosystem.",
+    category: 'Technology',
+    date: '2025-10-29',
+    imageUrl: '/insights/microsoft-nus.jpg',
+    externalUrl: 'https://news.microsoft.com/source/asia/2025/10/29/microsoft-enterprise-singapore-and-nus-enterprise-to-fast-track-growth-for-150-ai-startups/',
+    source: 'Microsoft News'
+  },
+  {
+    id: 2,
+    title: "Kemkomdigi Luncurkan Garuda Spark Innovation Hub di Block71 Bandung",
+    excerpt: "Kementerian Komunikasi dan Digital meluncurkan Garuda Spark Innovation Hub di Block71 Bandung, memperkuat ekosistem startup teknologi Indonesia dengan fasilitas inkubasi dan akselerasi.",
+    category: 'Startup',
+    date: '2024-11-20',
+    imageUrl: '/insights/garuda-spark.jpg',
+    externalUrl: 'https://www.sinarharapan.co/kesra/38515993219/kemkomdigi-luncurkan-garuda-spark-innovation-hub-di-block71-bandung',
+    source: 'Sinar Harapan'
+  },
+  {
+    id: 3,
+    title: "Libere Juara Infinity Hackathon 2025: Atasi Pembajakan Buku Lewat Web3",
+    excerpt: "Inovasi Libere menggunakan teknologi blockchain Web3 untuk mengatasi pembajakan buku digital, meraih juara di Infinity Hackathon 2025 yang diselenggarakan Kemenparekraf.",
+    category: 'Event',
+    date: '2025-01-08',
+    imageUrl: '/insights/libere-winner.jpg',
+    externalUrl: 'https://www.inilah.com/atasi-pembajakan-buku-lewat-web3-inovasi-libere-juara-infinity-hackathon-2025-kemenekraf',
+    source: 'Inilah.com'
+  },
+];
 
 const LibraryDetailScreen = () => {
   const { id } = useParams<{ id: string }>();
@@ -131,6 +217,13 @@ const LibraryDetailScreen = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [nftBooks, setNftBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+
+  // Bandung library images for carousel
+  const bandungImages = [
+    '/library-photos/bandung-interior-1.webp',
+    '/library-photos/bandung-interior-2.jpg',
+    '/library-photos/bandung-registration.jpg'
+  ];
 
   // Fetch all books from database
   useEffect(() => {
@@ -198,14 +291,31 @@ const LibraryDetailScreen = () => {
     <StandaloneLayout
       librarySlug={librarySlug}
       libraryLogo={library.logoPath}
+      libraryName={library.name}
+      libraryTagline={library.tagline}
       showScrollNav={librarySlug === 'theroom19'}
     >
       <div className="min-h-screen flex flex-col" style={{ backgroundColor: theme.colors.background }}>
-        {/* Conditional Hero Section - Only for The Room 19 (Minimalist Monochrome) */}
+        {/* Conditional Hero Section - The Room 19 & Block 71 */}
         {theme.hero.enabled && (
           <div id="home" className={`scroll-mt-16 relative h-[50vh] md:h-[60vh] w-full overflow-hidden bg-gradient-to-br ${theme.hero.backgroundGradient}`}>
-            {/* Optional: Background texture/image */}
-            <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC40Ij48cGF0aCBkPSJNMzYgMzRjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDQgMS43OSA0IDQgNCA0LTEuNzkgNC00em0wLTEwYzAtMi4yMS0xLjc5LTQtNC00cy00IDEuNzktNCA0IDEuNzkgNCA0IDQgNC0xLjc5IDQtNHptMC0xMGMwLTIuMjEtMS43OS00LTQtNHMtNCAxLjc5LTQgNGMwIDIuMjEgMS43OSA0IDQgNHM0LTEuNzkgNC00eiIvPjwvZz48L2c+PC9zdmc+')]" />
+            {/* Block 71 - Blurred jumbotron image background */}
+            {librarySlug === 'block71' && (
+              <div className="absolute inset-0">
+                <img
+                  src="/library-photos/block71-hero.jpg"
+                  alt="Block 71 Indonesia"
+                  className="w-full h-full object-cover blur-md scale-110"
+                />
+                {/* Dark overlay for better text readability */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[#0A4D68]/80 via-[#088395]/70 to-[#05BFDB]/80" />
+              </div>
+            )}
+
+            {/* The Room 19 - SVG texture */}
+            {librarySlug === 'theroom19' && (
+              <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC40Ij48cGF0aCBkPSJNMzYgMzRjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDQgMS43OSA0IDQgNCA0LTEuNzkgNC00em0wLTEwYzAtMi4yMS0xLjc5LTQtNC00cy00IDEuNzktNCA0IDEuNzkgNCA0IDQgNC0xLjc5IDQtNHptMC0xMGMwLTIuMjEtMS43OS00LTQtNHMtNCAxLjc5LTQgNGMwIDIuMjEgMS43OSA0IDQgNHM0LTEuNzkgNC00eiIvPjwvZz48L2c+PC9zdmc+')]" />
+            )}
 
             {/* Content overlay */}
             <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
@@ -232,34 +342,16 @@ const LibraryDetailScreen = () => {
           </div>
         )}
 
-        {/* Header Section (for non-hero libraries) */}
-        {!theme.hero.enabled && (
-          <div className="w-full flex flex-col items-center justify-center mt-8 mb-8">
-            <div className="max-w-screen-xl w-full px-4 sm:px-6">
-              <div className="flex items-center gap-4 mb-4">
-                {/* Logo */}
-                <div className={`${theme.header.logoSize} rounded-full bg-white ${theme.header.logoBorder} shadow-md flex items-center justify-center overflow-hidden`}>
-                  <img
-                    src={library.logoPath}
-                    alt={`${library.name} Logo`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full bg-zinc-900 flex items-center justify-center"><span class="text-white text-xs font-bold">${library.logoFallback}</span></div>`;
-                    }}
-                  />
-                </div>
-
-                {/* Title and Tagline */}
-                <div>
-                  <h1 className={`${theme.header.titleSize} font-bold`} style={{ color: theme.colors.text }}>
-                    {library.name}
-                  </h1>
-                  <p className={`${theme.header.taglineSize} mt-1`} style={{ color: theme.colors.textLight }}>
-                    {library.tagline}
-                  </p>
-                </div>
-              </div>
+        {/* Gallery Section - Bandung only */}
+        {librarySlug === 'bandung' && (
+          <div id="gallery" className="w-full flex items-center justify-center pt-6 pb-8">
+            <div className="w-full max-w-5xl px-4 sm:px-6">
+              {/* Carousel - Full Width */}
+              <ImageCarousel
+                images={bandungImages}
+                interval={5000}
+                alt="Bandung City Digital Library"
+              />
             </div>
           </div>
         )}
@@ -292,10 +384,96 @@ const LibraryDetailScreen = () => {
                 isLoading={loading}
                 libraryAddress={library.poolAddress}
                 useMonochromeColors={librarySlug === 'theroom19'}
+                useBlock71Colors={librarySlug === 'block71'}
               />
             )}
           </section>
         </div>
+
+        {/* Entrepreneurship Insights - Block 71 only */}
+        {librarySlug === 'block71' && (
+          <div id="insights" className="scroll-mt-16 w-full flex items-center justify-center py-16 bg-gradient-to-br from-teal-50 to-blue-50">
+            <div className="max-w-screen-xl w-full px-4 sm:px-6">
+              {/* Section Header */}
+              <div className="mb-12 text-center">
+                <h2 className="text-3xl md:text-4xl font-black text-zinc-900 mb-2">
+                  Latest from the Ecosystem
+                </h2>
+                <p className="text-zinc-600">
+                  News, insights, and updates from the entrepreneurship community
+                </p>
+              </div>
+
+              {/* Insights Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {block71Insights.map((insight) => (
+                  <div
+                    key={insight.id}
+                    className="bg-white rounded-xl border-2 border-teal-100 hover:border-teal-400 hover:shadow-xl transition-all overflow-hidden"
+                  >
+                    {/* Image */}
+                    <div className="relative h-48 bg-gradient-to-br from-teal-50 to-blue-50">
+                      <img
+                        src={insight.imageUrl}
+                        alt={insight.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <span className="absolute top-3 right-3 px-3 py-1 bg-teal-500 text-white text-xs font-bold rounded-full">
+                        {insight.category}
+                      </span>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-5">
+                      <p className="text-xs text-slate-500 mb-2">
+                        {new Date(insight.date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })} • {insight.source}
+                      </p>
+                      <h3 className="text-lg font-bold text-zinc-900 mb-2 line-clamp-2">
+                        {insight.title}
+                      </h3>
+                      <p className="text-sm text-zinc-600 mb-4 line-clamp-3">
+                        {insight.excerpt}
+                      </p>
+                      <a
+                        href={insight.externalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 font-semibold text-sm transition-colors"
+                      >
+                        <span>Read More</span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA to Website */}
+              <div className="mt-10 text-center">
+                <a
+                  href="https://jakarta.block71.co"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-teal-500 text-white hover:bg-teal-600 rounded-lg font-bold text-base transition-colors shadow-lg"
+                >
+                  <span>Visit Block71 Jakarta</span>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Reservation Section - The Room 19 only */}
         {librarySlug === 'theroom19' && (
@@ -351,11 +529,11 @@ const LibraryDetailScreen = () => {
           <div className="max-w-screen-xl w-full px-4 sm:px-6">
             {/* Section Header */}
             <div className="mb-12 text-center">
-              <h2 className={`text-3xl md:text-4xl font-black mb-2 ${theme.hero.enabled ? 'text-white' : 'text-black'}`}>
+              <h2 className={`text-3xl md:text-4xl font-black mb-2 ${(theme.hero.enabled || librarySlug === 'block71') ? 'text-white' : 'text-black'}`}>
                 Location & Address
               </h2>
-              <p className={`${theme.hero.enabled ? 'text-zinc-300' : 'text-zinc-600'}`}>
-                Find us in the heart of Bandung
+              <p className={`${(theme.hero.enabled || librarySlug === 'block71') ? (librarySlug === 'block71' ? 'text-teal-100' : 'text-zinc-300') : 'text-zinc-600'}`}>
+                {librarySlug === 'block71' ? 'Find us in the heart of Jakarta' : 'Find us in the heart of Bandung'}
               </p>
             </div>
 
@@ -376,7 +554,7 @@ const LibraryDetailScreen = () => {
 
               {/* Address Info */}
               <div className="flex flex-col justify-center">
-                <h3 className={`text-xl font-bold mb-4 ${librarySlug === 'theroom19' ? 'text-white' : 'text-zinc-900'}`}>
+                <h3 className={`text-xl font-bold mb-4 ${librarySlug === 'theroom19' || librarySlug === 'block71' ? 'text-white' : 'text-zinc-900'}`}>
                   Visit Us
                 </h3>
                 <div className="flex items-start gap-3 mb-4">
@@ -400,13 +578,13 @@ const LibraryDetailScreen = () => {
                     />
                   </svg>
                   <div>
-                    <p className={`font-medium ${librarySlug === 'theroom19' ? 'text-white' : 'text-zinc-900'}`}>
+                    <p className={`font-medium ${librarySlug === 'theroom19' || librarySlug === 'block71' ? 'text-white' : 'text-zinc-900'}`}>
                       {library.address.street}
                     </p>
-                    <p className={`text-sm ${librarySlug === 'theroom19' ? 'text-zinc-300' : 'text-zinc-600'}`}>
+                    <p className={`text-sm ${librarySlug === 'theroom19' || librarySlug === 'block71' ? (librarySlug === 'block71' ? 'text-teal-100' : 'text-zinc-300') : 'text-zinc-600'}`}>
                       {library.address.city}
                     </p>
-                    <p className={`text-sm ${librarySlug === 'theroom19' ? 'text-zinc-300' : 'text-zinc-600'}`}>
+                    <p className={`text-sm ${librarySlug === 'theroom19' || librarySlug === 'block71' ? (librarySlug === 'block71' ? 'text-teal-100' : 'text-zinc-300') : 'text-zinc-600'}`}>
                       {library.address.postal}
                     </p>
                   </div>

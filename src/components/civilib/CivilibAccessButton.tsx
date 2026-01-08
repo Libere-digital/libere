@@ -34,13 +34,13 @@ const CivilibAccessButton = ({
   const [statusMessage, setStatusMessage] = useState("");
   const navigate = useNavigate();
 
-  // Check if user has borrowed this book using getActiveBorrows
+  // Check if user has borrowed this book using getActiveBorrows or usableBalanceOf (fallback)
   useEffect(() => {
     const checkBorrowStatus = async () => {
       if (!clientPublic || !smartWalletAddress) return;
 
       try {
-        // Get all active borrows for this user
+        // Try getActiveBorrows first (works for The Room 19 with old contract)
         const activeBorrows: any = await clientPublic.readContract({
           address: effectiveLibraryAddress,
           abi: libraryPoolABI,
@@ -68,13 +68,37 @@ const CivilibAccessButton = ({
           }
         }
       } catch (error) {
-        console.error("Error checking borrow status:", error);
-        setHasBorrowed(false);
+        console.error("getActiveBorrows failed, trying usableBalanceOf fallback:", error);
+
+        // Fallback: use usableBalanceOf (works for Bandung with new contract)
+        try {
+          const usableBalance: any = await clientPublic.readContract({
+            address: effectiveLibraryAddress,
+            abi: libraryPoolABI,
+            functionName: "usableBalanceOf",
+            args: [smartWalletAddress, BigInt(bookId)],
+          });
+
+          const hasBorrow = Number(usableBalance) > 0;
+          setHasBorrowed(hasBorrow);
+
+          // Note: usableBalanceOf doesn't return expiry, so we can't show countdown
+          // We could fetch it from userRecordOf if needed
+          if (onBorrowStatusChange) {
+            onBorrowStatusChange(hasBorrow ? 1 : null); // Pass 1 as placeholder, or fetch actual expiry
+          }
+        } catch (fallbackError) {
+          console.error("Both getActiveBorrows and usableBalanceOf failed:", fallbackError);
+          setHasBorrowed(false);
+          if (onBorrowStatusChange) {
+            onBorrowStatusChange(null);
+          }
+        }
       }
     };
 
     checkBorrowStatus();
-  }, [bookId, clientPublic, smartWalletAddress, onBorrowStatusChange]);
+  }, [bookId, clientPublic, smartWalletAddress, onBorrowStatusChange, effectiveLibraryAddress]);
 
   // Borrow book from library pool
   const onBorrowBook = async () => {
@@ -107,6 +131,7 @@ const CivilibAccessButton = ({
 
         // Fetch updated borrow status with expiry
         try {
+          // Try getActiveBorrows first
           const activeBorrows: any = await clientPublic.readContract({
             address: effectiveLibraryAddress,
             abi: libraryPoolABI,
@@ -127,7 +152,26 @@ const CivilibAccessButton = ({
             }
           }
         } catch (error) {
-          console.error("Error fetching updated borrow status:", error);
+          console.error("getActiveBorrows failed after borrow, using usableBalanceOf fallback:", error);
+
+          // Fallback: use usableBalanceOf
+          try {
+            const usableBalance: any = await clientPublic.readContract({
+              address: effectiveLibraryAddress,
+              abi: libraryPoolABI,
+              functionName: "usableBalanceOf",
+              args: [smartWalletAddress, BigInt(bookId)],
+            });
+
+            const hasBorrow = Number(usableBalance) > 0;
+            setHasBorrowed(hasBorrow);
+
+            if (onBorrowStatusChange && hasBorrow) {
+              onBorrowStatusChange(1); // Placeholder since we don't have expiry
+            }
+          } catch (fallbackError) {
+            console.error("Error fetching updated borrow status (both methods):", fallbackError);
+          }
         }
       }, 2000);
     } catch (error: any) {
