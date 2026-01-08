@@ -273,10 +273,13 @@ const DocumentReaderScreen = () => {
         setDocumentData(arrayBuffer);
         setLoading(false);
 
-        // Show splash screen if book has donation info (mockup enabled)
-        if (mockDonatedBy) {
-          console.log('🎬 [LoadBook] Showing donation splash screen...');
+        // Show splash screen ONLY for borrowed books (not owned books)
+        // This ensures users who purchased the book don't see the donation splash
+        if (mockDonatedBy && hasBorrowed && !ownsNFT) {
+          console.log('🎬 [LoadBook] Showing donation splash screen (borrowed book)...');
           setShowSplash(true);
+        } else if (ownsNFT) {
+          console.log('✅ [LoadBook] User owns this book - skipping donation splash');
         }
 
         const totalTime = (conversionEndTime - downloadStartTime) / 1000;
@@ -296,7 +299,7 @@ const DocumentReaderScreen = () => {
     return () => {
       console.log('🧹 [LoadBook] Component unmounted');
     };
-  }, [bookId, authenticated, user?.wallet?.address]);
+  }, [bookId, authenticated, user?.wallet?.address, hasBorrowed, ownsNFT]);
 
   // =============================================================
   // 🎨 RENDER APPROPRIATE READER
