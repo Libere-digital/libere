@@ -122,7 +122,7 @@ const CivilibBookList = ({ books, libraryAddress, useMonochromeColors = false, u
         )}
 
         {/* Books Grid */}
-        <ul className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 xs:gap-10">
+        <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 auto-rows-fr">
           {filteredBooks.map((book) => (
             <CivilibBookCard
               key={book.title}

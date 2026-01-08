@@ -90,9 +90,9 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
   }, [clientPublic, book.id, effectiveLibraryAddress, refreshTrigger]);
 
   return (
-    <li className="w-full">
+    <li className="w-full h-full">
       <div
-        className="w-full flex flex-col items-center p-5 rounded-lg border border-zinc-200 hover:border-zinc-300 hover:shadow-md transition-all duration-200 relative"
+        className="w-full h-full flex flex-col p-5 rounded-lg border border-zinc-200 hover:border-zinc-300 hover:shadow-md transition-all duration-200 relative"
       >
         {/* Availability Tag - Top Right */}
         {!loading && totalStock > 0 && (
@@ -109,14 +109,14 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
           </div>
         )}
 
-        <div className="w-full h-72 bg-zinc-100 rounded overflow-hidden">
+        <div className="relative w-full h-56 bg-zinc-100 rounded overflow-hidden flex-shrink-0">
           <img
             src={book.metadataUri}
             alt={book.title}
             className="w-full h-full object-cover"
           />
         </div>
-        <div className="w-full mt-3">
+        <div className="w-full mt-3 flex-1 flex flex-col">
           <h5 className="text-lg font-semibold tracking-tight text-zinc-900">
             {book.title}
           </h5>
@@ -168,7 +168,7 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
               </>
             )}
           </div>
-          <div className="w-full flex items-center gap-2 justify-between">
+          <div className="w-full flex items-center gap-2 justify-between mt-auto">
             <CivilibAccessButton
               client={client}
               clientPublic={clientPublic}
