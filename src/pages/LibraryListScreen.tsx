@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import HomeLayout from '../components/layouts/HomeLayout';
+import { getLibraryCanonicalUrl } from '../utils/subdomain';
 
 const LibraryListScreen = () => {
   // Hardcoded library data - simple and direct
@@ -183,8 +184,8 @@ const LibraryListScreen = () => {
                   </div>
 
                   {/* Action Button */}
-                  <Link
-                    to={`/libraries/${library.slug}`}
+                  <a
+                    href={getLibraryCanonicalUrl(library.slug)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors shadow-md hover:shadow-lg"
@@ -193,7 +194,7 @@ const LibraryListScreen = () => {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>
-                  </Link>
+                  </a>
                 </div>
               </div>
                 </div>
