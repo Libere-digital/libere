@@ -4,7 +4,7 @@
  * Maps subdomains to library slugs for direct access:
  * - theroom19.libere.digital → The Room 19
  * - bandung.libere.digital → Bandung City Digital Library
- * - block71.libere.digital → Block 71 Indonesia
+ * - block71.libere.digital → Block71 Indonesia
  * - app.libere.digital → Main platform (home/books)
  */
 

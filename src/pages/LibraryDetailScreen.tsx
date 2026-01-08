@@ -147,7 +147,7 @@ const libraryData = {
   },
   'block71': {
     id: 3,
-    name: 'Block 71 Indonesia',
+    name: 'Block71 Indonesia',
     tagline: 'Global network of entrepreneurial hubs by NUS Enterprise',
     logoPath: '/library-logos/block71.png',
     logoFallback: 'B71',
@@ -163,7 +163,7 @@ const libraryData = {
   },
 };
 
-// Block 71 Entrepreneurship Insights
+// Block71 Entrepreneurship Insights
 interface NewsInsight {
   id: number;
   title: string;
@@ -296,15 +296,15 @@ const LibraryDetailScreen = () => {
       showScrollNav={librarySlug === 'theroom19'}
     >
       <div className="min-h-screen flex flex-col" style={{ backgroundColor: theme.colors.background }}>
-        {/* Conditional Hero Section - The Room 19 & Block 71 */}
+        {/* Conditional Hero Section - The Room 19 & Block71 */}
         {theme.hero.enabled && (
           <div id="home" className={`scroll-mt-16 relative h-[50vh] md:h-[60vh] w-full overflow-hidden bg-gradient-to-br ${theme.hero.backgroundGradient}`}>
-            {/* Block 71 - Blurred jumbotron image background */}
+            {/* Block71 - Blurred jumbotron image background */}
             {librarySlug === 'block71' && (
               <div className="absolute inset-0">
                 <img
                   src="/library-photos/block71-hero.jpg"
-                  alt="Block 71 Indonesia"
+                  alt="Block71 Indonesia"
                   className="w-full h-full object-cover blur-md scale-110"
                 />
                 {/* Dark overlay for better text readability */}
@@ -390,7 +390,7 @@ const LibraryDetailScreen = () => {
           </section>
         </div>
 
-        {/* Entrepreneurship Insights - Block 71 only */}
+        {/* Entrepreneurship Insights - Block71 only */}
         {librarySlug === 'block71' && (
           <div id="insights" className="scroll-mt-16 w-full flex items-center justify-center py-16 bg-gradient-to-br from-teal-50 to-blue-50">
             <div className="max-w-screen-xl w-full px-4 sm:px-6">

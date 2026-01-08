@@ -11,7 +11,7 @@ interface Props {
   isLoading: boolean;
   libraryAddress?: string; // Optional: specific library pool address
   useMonochromeColors?: boolean; // Enable for The Room 19
-  useBlock71Colors?: boolean; // Enable for Block 71 Indonesia
+  useBlock71Colors?: boolean; // Enable for Block71 Indonesia
 }
 
 const CivilibBookList = ({ books, libraryAddress, useMonochromeColors = false, useBlock71Colors = false }: Props) => {
@@ -33,7 +33,7 @@ const CivilibBookList = ({ books, libraryAddress, useMonochromeColors = false, u
     ? books
     : books.filter(b => b.category === selectedCategory);
 
-  // Block 71 category color mapping (teal/blue gradient scheme)
+  // Block71 category color mapping (teal/blue gradient scheme)
   const getBlock71CategoryColor = (category: string): string => {
     const colorMap: Record<string, string> = {
       'All': 'from-slate-600 to-slate-700',
@@ -56,7 +56,7 @@ const CivilibBookList = ({ books, libraryAddress, useMonochromeColors = false, u
               const colors = useMonochromeColors ? getCategoryColors(category) : null;
               const block71Gradient = useBlock71Colors ? getBlock71CategoryColor(category) : '';
 
-              // Block 71 style: Rectangular gradient chips with icon
+              // Block71 style: Rectangular gradient chips with icon
               if (useBlock71Colors) {
                 return (
                   <button

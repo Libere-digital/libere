@@ -37,7 +37,7 @@ const LibraryListScreen = () => {
     {
       id: 3,
       slug: 'block71',
-      name: 'Block 71 Indonesia',
+      name: 'Block71 Indonesia',
       address: '0x92b34b5000452D6793dFA4012bBDAa676D8C35A0',
       description: 'Global network of entrepreneurial hubs by NUS Enterprise, fostering innovation and connecting tech startups across Jakarta, Bandung, Singapore, and beyond.',
       logoPath: '/library-logos/block71.png',
