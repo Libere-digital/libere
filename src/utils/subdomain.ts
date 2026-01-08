@@ -34,29 +34,38 @@ export const getSubdomain = (hostname: string): string | null => {
   // Remove www. if present
   const host = hostname.replace(/^www\./, '');
 
+  console.log('[getSubdomain] Input hostname:', hostname);
+  console.log('[getSubdomain] Cleaned host:', host);
+
   // Split by dots
   const parts = host.split('.');
+  console.log('[getSubdomain] Parts:', parts);
 
   // If hostname is exactly main domain (libere.digital or www.libere.digital)
   if (host === MAIN_DOMAIN || host === `www.${MAIN_DOMAIN}`) {
+    console.log('[getSubdomain] Matched main domain - returning null');
     return null;
   }
 
   // If app subdomain (app.libere.digital) - treat as main platform
   if (host === `${APP_SUBDOMAIN}.${MAIN_DOMAIN}`) {
+    console.log('[getSubdomain] Matched app subdomain - returning null');
     return null;
   }
 
   // If localhost or IP (for development)
   if (host === 'localhost' || host.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+    console.log('[getSubdomain] Matched localhost/IP - returning null');
     return null;
   }
 
   // If subdomain exists (e.g., theroom19.libere.digital)
   if (parts.length >= 3) {
+    console.log('[getSubdomain] Found subdomain:', parts[0]);
     return parts[0];
   }
 
+  console.log('[getSubdomain] No subdomain found - returning null');
   return null;
 };
 
