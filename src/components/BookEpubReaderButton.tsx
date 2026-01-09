@@ -15,7 +15,11 @@ const BookEpubReaderButton = ({ book }: Props) => {
 
   const onReadBook = () => {
     // Always use unified route - DocumentReaderScreen will auto-detect type
-    navigate(`/read-book/${book.id}`);
+    // Explicitly set fromLibrary: false to prevent splash screen from showing
+    navigate(`/read-book/${book.id}`, {
+      state: { fromLibrary: false },
+      replace: false
+    });
   };
 
   return (

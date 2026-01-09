@@ -25,6 +25,7 @@ const PdfRenderer = ({
 }: PdfRendererProps) => {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [pdfDoc, setPdfDoc] = useState<any>(null);
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -33,6 +34,7 @@ const PdfRenderer = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [rendering, setRendering] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<'scroll' | 'page'>('scroll'); // Default to scroll mode
 
   // Log when component mounts
   useEffect(() => {
@@ -140,34 +142,65 @@ const PdfRenderer = ({
     calculateFitToWidthScale();
   }, [pdfDoc]);
 
-  // Render current page
+  // Render page(s) based on view mode
   useEffect(() => {
-    const renderPage = async () => {
-      if (!pdfDoc || !canvasRef.current || rendering) return;
+    const renderPages = async () => {
+      if (!pdfDoc || rendering) return;
 
       try {
         setRendering(true);
-        console.log(`📄 [PdfRenderer] Rendering page ${currentPage}...`);
 
-        const page = await pdfDoc.getPage(currentPage);
-        const canvas = canvasRef.current;
-        const context = canvas.getContext('2d');
+        if (viewMode === 'scroll') {
+          // Scroll mode: Render all pages
+          console.log(`📄 [PdfRenderer] Rendering all ${numPages} pages in scroll mode...`);
+          const container = scrollContainerRef.current;
+          if (!container) return;
 
-        if (!context) {
-          throw new Error('Cannot get canvas context');
+          // Clear container
+          container.innerHTML = '';
+
+          // Render each page
+          for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+            const page = await pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({ scale });
+
+            const canvas = document.createElement('canvas');
+            canvas.className = 'shadow-lg mb-4 mx-auto';
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            canvas.style.maxWidth = '100%';
+            canvas.style.height = 'auto';
+
+            const context = canvas.getContext('2d');
+            if (!context) continue;
+
+            await page.render({ canvasContext: context, viewport }).promise;
+            container.appendChild(canvas);
+          }
+
+          console.log(`✅ [PdfRenderer] All pages rendered in scroll mode`);
+        } else {
+          // Page mode: Render single page
+          if (!canvasRef.current) return;
+
+          console.log(`📄 [PdfRenderer] Rendering page ${currentPage}...`);
+
+          const page = await pdfDoc.getPage(currentPage);
+          const canvas = canvasRef.current;
+          const context = canvas.getContext('2d');
+
+          if (!context) {
+            throw new Error('Cannot get canvas context');
+          }
+
+          const viewport = page.getViewport({ scale });
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+
+          await page.render({ canvasContext: context, viewport }).promise;
+          console.log(`✅ [PdfRenderer] Page ${currentPage} rendered (scale: ${scale}x)`);
         }
 
-        const viewport = page.getViewport({ scale });
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        const renderContext = {
-          canvasContext: context,
-          viewport: viewport,
-        };
-
-        await page.render(renderContext).promise;
-        console.log(`✅ [PdfRenderer] Page ${currentPage} rendered (scale: ${scale}x)`);
         setRendering(false);
       } catch (err: any) {
         console.error(`❌ [PdfRenderer] Page render error:`, err);
@@ -175,8 +208,8 @@ const PdfRenderer = ({
       }
     };
 
-    renderPage();
-  }, [pdfDoc, currentPage, scale, rendering]);
+    renderPages();
+  }, [pdfDoc, currentPage, scale, viewMode, numPages, rendering]);
 
   // Calculate and save progress
   useEffect(() => {
@@ -248,8 +281,10 @@ const PdfRenderer = ({
     };
   }, [goToPreviousPage, goToNextPage]);
 
-  // Touch swipe navigation
+  // Touch swipe navigation (only in page mode)
   useEffect(() => {
+    if (viewMode !== 'page') return;
+
     const container = canvasRef.current?.parentElement;
     if (!container) return;
 
@@ -289,7 +324,7 @@ const PdfRenderer = ({
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [goToPreviousPage, goToNextPage]);
+  }, [goToPreviousPage, goToNextPage, viewMode]);
 
   const handleZoomIn = () => {
     setScale((prev) => {
@@ -374,8 +409,34 @@ const PdfRenderer = ({
             </div>
           )}
 
+          {/* View mode toggle */}
+          <div className="flex items-center gap-2 ml-4">
+            <button
+              onClick={() => setViewMode('scroll')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                viewMode === 'scroll'
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+              }`}
+              title="Scroll mode"
+            >
+              Scroll
+            </button>
+            <button
+              onClick={() => setViewMode('page')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                viewMode === 'page'
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+              }`}
+              title="Page mode"
+            >
+              Page
+            </button>
+          </div>
+
           {/* Zoom controls */}
-          <div className="flex items-center gap-1 ml-4">
+          <div className="flex items-center gap-1 ml-2">
             <button
               onClick={handleZoomOut}
               disabled={scale <= 0.5}
@@ -425,43 +486,54 @@ const PdfRenderer = ({
         )}
 
         {!loading && !error && pdfDoc && (
-          <div className="flex justify-center py-4 pdf-viewer-container">
-            <canvas
-              ref={canvasRef}
-              className="shadow-lg"
-              style={{ maxWidth: '100%', height: 'auto' }}
-            />
-          </div>
+          <>
+            {viewMode === 'scroll' ? (
+              <div
+                ref={scrollContainerRef}
+                className="py-4 pdf-viewer-container"
+              />
+            ) : (
+              <div className="flex justify-center py-4 pdf-viewer-container">
+                <canvas
+                  ref={canvasRef}
+                  className="shadow-lg"
+                  style={{ maxWidth: '100%', height: 'auto' }}
+                />
+              </div>
+            )}
+          </>
         )}
 
         {/* Watermark Overlay (same component as EPUB) */}
         <WatermarkOverlay isEnabled={true} />
       </div>
 
-      {/* Navigation Controls */}
-      <div className="bg-white border-t border-zinc-200 py-3 px-6">
-        <div className="flex items-center justify-between max-w-screen-xl mx-auto">
-          <button
-            onClick={goToPreviousPage}
-            disabled={currentPage === 1}
-            className="px-4 py-2 bg-zinc-900 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium hover:bg-zinc-800 transition-colors"
-          >
-            ← Previous
-          </button>
+      {/* Navigation Controls - Only show in page mode */}
+      {viewMode === 'page' && (
+        <div className="bg-white border-t border-zinc-200 py-3 px-6">
+          <div className="flex items-center justify-between max-w-screen-xl mx-auto">
+            <button
+              onClick={goToPreviousPage}
+              disabled={currentPage === 1}
+              className="px-4 py-2 bg-zinc-900 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium hover:bg-zinc-800 transition-colors"
+            >
+              ← Previous
+            </button>
 
-          <span className="text-sm text-zinc-700 font-medium">
-            Page {currentPage} of {numPages}
-          </span>
+            <span className="text-sm text-zinc-700 font-medium">
+              Page {currentPage} of {numPages}
+            </span>
 
-          <button
-            onClick={goToNextPage}
-            disabled={currentPage === numPages}
-            className="px-4 py-2 bg-zinc-900 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium hover:bg-zinc-800 transition-colors"
-          >
-            Next →
-          </button>
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === numPages}
+              className="px-4 py-2 bg-zinc-900 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium hover:bg-zinc-800 transition-colors"
+            >
+              Next →
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* CSS for print blocking */}
       <style>{`

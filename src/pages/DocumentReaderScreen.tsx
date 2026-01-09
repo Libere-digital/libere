@@ -22,7 +22,16 @@ const DocumentReaderScreen = () => {
   const { user, authenticated } = usePrivy();
 
   // Check if user came from library page (via route state)
-  const fromLibrary = location.state?.fromLibrary || false;
+  // Explicitly check if state exists and fromLibrary is true
+  // Default to false if undefined or any other falsy value
+  const fromLibrary = location.state?.fromLibrary === true;
+
+  console.log('🔍 [DocReader] Navigation source check:', {
+    'location.state': location.state,
+    'fromLibrary': fromLibrary,
+    'state exists': !!location.state,
+    'explicit true check': location.state?.fromLibrary === true
+  });
 
   console.log("📖 [DocReader] Book ID from params:", bookId, "Type:", typeof bookId);
 
