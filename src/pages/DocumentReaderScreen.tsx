@@ -7,7 +7,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { createPublicClient, http } from "viem";
 import { baseSepolia } from "viem/chains";
 import { contractABI, contractAddress } from "../smart-contract.abi";
-import { libraryPoolABI, libraryPoolAddress } from "../library-pool.abi";
+import { libraryPoolABI } from "../library-pool.abi";
 import EpubReaderScreen from "./EpubReaderScreen";
 import PdfRenderer from "./PdfRenderer";
 import DonationSplashScreen from "../components/reader/DonationSplashScreen";
