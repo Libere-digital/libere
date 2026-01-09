@@ -121,6 +121,25 @@ main.tsx (entry point) → PrivyProvider (auth) → CurrencyProvider → Browser
 **Temporarily Hidden:**
 - `/publish` → CreateBookV2Screen (publish new books - currently disabled due to onlyOwner contract restriction)
 
+### Subdomain Routing
+
+The app supports library-specific subdomains via [SubdomainRouter](src/routes/SubdomainRouter.tsx):
+
+**How it works:**
+- Main domain (libere.digital or localhost) → Normal routing
+- Library subdomains (theroom19.libere.digital, bandung.libere.digital, block71.libere.digital) → Auto-redirects to `/libraries/:slug`
+- Allowed paths on subdomains: `/libraries/:slug`, `/read-book/:id`, `/listen-audiobook/:id`
+- All other paths redirect to the library's detail page
+
+**Example:**
+```
+theroom19.libere.digital → redirects to /libraries/theroom19
+theroom19.libere.digital/read-book/1 → allowed, shows reader
+bandung.libere.digital/books → redirects to /libraries/bandung
+```
+
+This enables each library to have its own branded subdomain entry point.
+
 ### Core Directories
 
 ```

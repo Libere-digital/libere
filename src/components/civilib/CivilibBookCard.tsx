@@ -64,17 +64,23 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
 
         setTotalStock(Number(totalStockBalance));
 
-        // Fetch frozen/borrowed count from library pool contract
-        const availabilityData: any = await clientPublic.readContract({
-          address: effectiveLibraryAddress,
-          abi: libraryPoolABI,
-          functionName: "previewAvailability",
-          args: [BigInt(book.id)],
-        });
+        // Try to fetch frozen/borrowed count from library pool contract
+        try {
+          const availabilityData: any = await clientPublic.readContract({
+            address: effectiveLibraryAddress,
+            abi: libraryPoolABI,
+            functionName: "previewAvailability",
+            args: [BigInt(book.id)],
+          });
 
-        // previewAvailability returns [available, frozenNow]
-        const frozen = Number(availabilityData[1]);
-        setFrozenNow(frozen);
+          // previewAvailability returns [available, frozenNow]
+          const frozen = Number(availabilityData[1]);
+          setFrozenNow(frozen);
+        } catch (previewError: any) {
+          console.warn(`previewAvailability not available for ${effectiveLibraryAddress}, assuming all books are available`);
+          // If previewAvailability doesn't exist (new contracts), assume all books are available
+          setFrozenNow(0);
+        }
 
         setLoading(false);
       } catch (error: any) {

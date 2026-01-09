@@ -136,7 +136,7 @@ const libraryData = {
     logoPath: '/library-logos/bandung.png',
     logoFallback: 'PKB',
     instagramUrl: '',
-    poolAddress: '0x8A6A31868Ef2b779B838828367B7ED8BE6DFfFAB',
+    poolAddress: '0xa1371f33A4C90a397862c9c05919Aa6B4A3761cD',
     address: {
       street: 'Jl. Kawaluyaan Indah II No.4, Jatisari',
       city: 'Kec. Buahbatu, Kota Bandung',
@@ -152,7 +152,7 @@ const libraryData = {
     logoPath: '/library-logos/block71.png',
     logoFallback: 'B71',
     instagramUrl: '',
-    poolAddress: '0x92b34b5000452D6793dFA4012bBDAa676D8C35A0',
+    poolAddress: '0x72A421C93dA185adF33F8fC6bF90FEA850E1AC0b',
     address: {
       street: 'Ariobimo Sentral 8th Floor, RT.9/RW.4',
       city: 'East Kuningan, Setiabudi, Jakarta Selatan',

@@ -641,7 +641,7 @@ const EpubReaderScreen = () => {
   };
 
   const handleBack = () => {
-    navigate("/bookselfs");
+    navigate(-1); // Go back to previous page (library or bookshelf)
   };
 
   // Handle reading mode change

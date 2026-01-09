@@ -7,7 +7,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { createPublicClient, http } from "viem";
 import { baseSepolia } from "viem/chains";
 import { contractABI, contractAddress } from "../smart-contract.abi";
-import { libraryPoolABI } from "../library-pool.abi";
+import { libraryPoolABI, libraryPoolAddress } from "../library-pool.abi";
 import EpubReaderScreen from "./EpubReaderScreen";
 import PdfRenderer from "./PdfRenderer";
 import DonationSplashScreen from "../components/reader/DonationSplashScreen";
@@ -29,6 +29,7 @@ const DocumentReaderScreen = () => {
   const [bookCover, setBookCover] = useState<string>("");
   const [donatedBy, setDonatedBy] = useState<string | undefined>(undefined);
   const [donatedAt, setDonatedAt] = useState<string | undefined>(undefined);
+  const [borrowedFromLibrary, setBorrowedFromLibrary] = useState<string | null>(null); // Library name user borrowed from
   const [documentData, setDocumentData] = useState<ArrayBuffer | null>(null);
   const [documentType, setDocumentType] = useState<'epub' | 'pdf' | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -76,37 +77,44 @@ const DocumentReaderScreen = () => {
         // ===== CHECK 2: Library Borrowing (ERC-5006) =====
         console.log('📚 [Access Check] Checking library borrow status...');
 
-        // Check all 3 libraries for borrowed books
-        const LIBRARY_ADDRESSES = {
-          'theroom19': '0xA31D6d3f2a6C5fBA99E451CCAAaAdf0bca12cbF0',
-          'bandung': '0x8A6A31868Ef2b779B838828367B7ED8BE6DFfFAB',
-          'block71': '0x92b34b5000452D6793dFA4012bBDAa676D8C35A0',
-        };
+        // All library pool addresses and names
+        const libraries = [
+          { address: '0xA31D6d3f2a6C5fBA99E451CCAAaAdf0bca12cbF0', name: 'The Room 19' },
+          { address: '0xa1371f33A4C90a397862c9c05919Aa6B4A3761cD', name: 'Bandung City Digital Library' },
+          { address: '0x72A421C93dA185adF33F8fC6bF90FEA850E1AC0b', name: 'Block71 Indonesia' }
+        ];
 
         let hasBorrow = false;
-        let borrowLibrary: string | null = null;
+        let borrowExpiry: number | null = null;
+        let libraryName: string | null = null;
 
-        // Check each library
-        for (const [libraryName, libraryAddr] of Object.entries(LIBRARY_ADDRESSES)) {
+        // Check all libraries
+        for (const library of libraries) {
           try {
-            console.log(`   Checking ${libraryName}...`);
-            const usableBalance = await publicClient.readContract({
-              address: libraryAddr as `0x${string}`,
+            const activeBorrows: any = await publicClient.readContract({
+              address: library.address as `0x${string}`,
               abi: libraryPoolABI,
-              functionName: 'usableBalanceOf',
-              args: [addressToCheck as `0x${string}`, BigInt(bookId)],
-            }) as bigint;
+              functionName: 'getActiveBorrows',
+              args: [addressToCheck as `0x${string}`],
+            });
 
-            console.log(`   ${libraryName} usable balance:`, usableBalance.toString());
+            console.log(`   Checking ${library.name}:`, activeBorrows.length, 'borrows');
 
-            if (usableBalance > 0n) {
+            // Check if user has borrowed this specific book from this library
+            const borrowForThisBook = activeBorrows.find(
+              (borrow: any) => Number(borrow.tokenId) === Number(bookId)
+            );
+
+            if (borrowForThisBook) {
               hasBorrow = true;
-              borrowLibrary = libraryName;
-              console.log(`   ✅ Found borrow in ${libraryName}!`);
-              break; // Stop checking once we find one
+              borrowExpiry = Number(borrowForThisBook.expiry);
+              libraryName = library.name;
+              console.log(`   ✅ Found active borrow from ${library.name}`);
+              console.log('   Expiry:', new Date(borrowExpiry * 1000).toLocaleString());
+              break; // Found the borrow, no need to check other libraries
             }
-          } catch (error) {
-            console.log(`   ⚠️ Could not check ${libraryName}:`, error);
+          } catch (e) {
+            console.log(`   ⚠️ Could not fetch borrows from ${library.name}`);
           }
         }
 
@@ -116,52 +124,21 @@ const DocumentReaderScreen = () => {
         console.log('🎯 [FINAL CHECK]', {
           hasNFT,
           hasBorrow,
-          borrowLibrary,
+          borrowExpiry,
           willGrantAccess: hasNFT || hasBorrow
         });
 
         setOwnsNFT(hasNFT);
         setHasBorrowed(hasBorrow);
+        setBorrowExpiry(borrowExpiry);
+        setBorrowedFromLibrary(libraryName);
 
         if (hasNFT) {
           console.log('✅ [Access Check] User OWNS this book NFT (purchased)');
-          setBorrowExpiry(null);
-        } else if (hasBorrow && borrowLibrary) {
-          console.log(`✅ [Access Check] User has BORROWED this book from ${borrowLibrary}`);
-
-          // Get expiry ONLY from The Room 19 (has getActiveBorrows)
-          if (borrowLibrary === 'theroom19') {
-            try {
-              const activeBorrows: any = await publicClient.readContract({
-                address: LIBRARY_ADDRESSES[borrowLibrary as keyof typeof LIBRARY_ADDRESSES] as `0x${string}`,
-                abi: libraryPoolABI,
-                functionName: 'getActiveBorrows',
-                args: [addressToCheck as `0x${string}`],
-              });
-
-              const borrowForThisBook = activeBorrows.find(
-                (borrow: any) => Number(borrow.tokenId) === Number(bookId)
-              );
-
-              if (borrowForThisBook) {
-                const expiryTimestamp = Number(borrowForThisBook.expiry);
-                setBorrowExpiry(expiryTimestamp);
-                console.log('   Expiry:', new Date(expiryTimestamp * 1000).toLocaleString());
-              } else {
-                setBorrowExpiry(null);
-              }
-            } catch (e) {
-              console.log('   Could not fetch expiry details from The Room 19');
-              setBorrowExpiry(null);
-            }
-          } else {
-            // Bandung & Block71: No expiry info available
-            console.log(`   Note: ${borrowLibrary} does not provide expiry info`);
-            setBorrowExpiry(null);
-          }
+        } else if (hasBorrow) {
+          console.log('✅ [Access Check] User has BORROWED this book from library');
         } else {
           console.log('❌ [Access Check] User has NO access to this book');
-          setBorrowExpiry(null);
         }
 
       } catch (error) {
@@ -201,10 +178,18 @@ const DocumentReaderScreen = () => {
     console.log('   authenticated:', authenticated);
     console.log('   user?.wallet?.address:', user?.wallet?.address);
     console.log('   bookId:', bookId);
+    console.log('   ownsNFT:', ownsNFT);
+    console.log('   hasBorrowed:', hasBorrowed);
 
     const loadBook = async () => {
       if (!authenticated || !user?.wallet?.address) {
         console.log('⚠️ [LoadBook] User not authenticated, waiting...');
+        return;
+      }
+
+      // Wait for access check to complete
+      if (ownsNFT === null || hasBorrowed === null) {
+        console.log('⏳ [LoadBook] Access check not completed yet, waiting...');
         return;
       }
 
@@ -235,15 +220,14 @@ const DocumentReaderScreen = () => {
         setBookTitle(book.title);
         setBookCover(book.metadataUri);
 
-        // MOCKUP DATA - Hardcoded donation info for testing
-        // TODO: Replace with actual database values after running SQL migration
+        // ALWAYS set donation info - hardcoded for testing
         const mockDonatedBy = "PT Everidea Interaktif Nusantara";
         const mockDonatedAt = "2025-12-01T00:00:00+07:00";
 
         setDonatedBy(mockDonatedBy);
         setDonatedAt(mockDonatedAt);
 
-        console.log('📦 [LoadBook] Donation info (MOCKUP):', {
+        console.log('📦 [LoadBook] Donation info ALWAYS set:', {
           donatedBy: mockDonatedBy,
           donatedAt: mockDonatedAt,
         });
@@ -302,13 +286,25 @@ const DocumentReaderScreen = () => {
         setDocumentData(arrayBuffer);
         setLoading(false);
 
-        // Show splash screen ONLY for borrowed books (not owned books)
-        // This ensures users who purchased the book don't see the donation splash
-        if (mockDonatedBy && hasBorrowed && !ownsNFT) {
-          console.log('🎬 [LoadBook] Showing donation splash screen (borrowed book)...');
+        // Show splash screen when accessed from library
+        // Even if user owns the book, if they have borrowed it from library, show donation splash
+        console.log('🎬 [LoadBook] Checking splash screen conditions:');
+        console.log('   mockDonatedBy (local):', mockDonatedBy);
+        console.log('   hasBorrowed:', hasBorrowed);
+        console.log('   ownsNFT:', ownsNFT);
+        console.log('   borrowedFromLibrary:', borrowedFromLibrary);
+        console.log('   Final condition (mockDonatedBy && hasBorrowed):', mockDonatedBy && hasBorrowed);
+
+        // Show splash if user has borrowed from library (regardless of ownership)
+        // Use local variable mockDonatedBy, not state donatedBy (state is async!)
+        if (mockDonatedBy && hasBorrowed) {
+          console.log('✅ [LoadBook] Showing donation splash screen (borrowed from library)...');
+          console.log('   Library:', borrowedFromLibrary);
           setShowSplash(true);
-        } else if (ownsNFT) {
-          console.log('✅ [LoadBook] User owns this book - skipping donation splash');
+        } else if (!hasBorrowed) {
+          console.log('⏭️  [LoadBook] User has not borrowed - skipping donation splash');
+        } else if (!mockDonatedBy) {
+          console.log('⏭️  [LoadBook] No donation info - skipping donation splash');
         }
 
         const totalTime = (conversionEndTime - downloadStartTime) / 1000;
@@ -328,7 +324,7 @@ const DocumentReaderScreen = () => {
     return () => {
       console.log('🧹 [LoadBook] Component unmounted');
     };
-  }, [bookId, authenticated, user?.wallet?.address, hasBorrowed, ownsNFT]);
+  }, [bookId, authenticated, user?.wallet?.address, ownsNFT, hasBorrowed, borrowedFromLibrary]);
 
   // =============================================================
   // 🎨 RENDER APPROPRIATE READER

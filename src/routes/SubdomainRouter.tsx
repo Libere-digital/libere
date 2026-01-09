@@ -27,13 +27,21 @@ const SubdomainRouter = ({ children }: { children: React.ReactNode }) => {
     if (isLibrarySubdomain(hostname) && librarySlug) {
       console.log('✅ [SubdomainRouter] On library subdomain:', librarySlug);
 
-      // Only redirect if we're not already on the library page
-      if (!location.pathname.startsWith(`/libraries/${librarySlug}`)) {
+      // Allow reading/listening routes without redirect
+      const allowedPaths = [
+        `/libraries/${librarySlug}`,
+        '/read-book/',
+        '/listen-audiobook/'
+      ];
+
+      const isAllowedPath = allowedPaths.some(path => location.pathname.startsWith(path));
+
+      if (!isAllowedPath) {
         console.log('🔀 [SubdomainRouter] Redirecting to /libraries/' + librarySlug);
         // Redirect to library detail page
         navigate(`/libraries/${librarySlug}`, { replace: true });
       } else {
-        console.log('✅ [SubdomainRouter] Already on library page');
+        console.log('✅ [SubdomainRouter] On allowed path:', location.pathname);
       }
     } else {
       console.log('✅ [SubdomainRouter] Main platform - no redirect');

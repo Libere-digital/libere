@@ -281,10 +281,10 @@ const AudiobookPlayerScreen = () => {
           <p className="text-xl font-semibold mb-2">Error Loading Audiobook</p>
           <p className="text-sm">{error}</p>
           <button
-            onClick={() => navigate('/bookselfs')}
+            onClick={() => navigate(-1)}
             className="mt-6 px-6 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
           >
-            Back to Bookshelf
+            Go Back
           </button>
         </div>
       </div>
@@ -296,7 +296,7 @@ const AudiobookPlayerScreen = () => {
       {/* Header */}
       <div className="w-full bg-white border-b border-zinc-200 px-4 py-3 flex items-center gap-3">
         <button
-          onClick={() => navigate('/bookselfs')}
+          onClick={() => navigate(-1)}
           className="p-2 hover:bg-zinc-100 rounded-lg transition-colors"
         >
           <FaArrowLeft className="text-zinc-700 text-xl" />
