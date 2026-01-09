@@ -183,7 +183,8 @@ const CivilibAccessButton = ({
   };
 
   const onOpenEpub = () => {
-    navigate(`/read-book/${bookId}`)
+    // Navigate with state to indicate user came from library page
+    navigate(`/read-book/${bookId}`, { state: { fromLibrary: true } });
   };
 
   return (

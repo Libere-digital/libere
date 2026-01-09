@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "../libs/supabase";
 import { isSupabaseStorageUrl, downloadDocumentBlob } from "../utils/supabaseStorage";
@@ -17,8 +17,12 @@ console.log('📱 [DocumentReaderScreen] Unified reader for EPUB and PDF with NF
 const DocumentReaderScreen = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const bookId = id || "unknown";
   const { user, authenticated } = usePrivy();
+
+  // Check if user came from library page (via route state)
+  const fromLibrary = location.state?.fromLibrary || false;
 
   console.log("📖 [DocReader] Book ID from params:", bookId, "Type:", typeof bookId);
 
@@ -286,23 +290,30 @@ const DocumentReaderScreen = () => {
         setDocumentData(arrayBuffer);
         setLoading(false);
 
-        // Show splash screen when accessed from library
-        // Even if user owns the book, if they have borrowed it from library, show donation splash
+        // Show splash screen based on WHERE user accessed from
+        // - FROM LIBRARY PAGE (fromLibrary=true) + has borrow -> Show splash
+        // - FROM BOOKSHELF (fromLibrary=false) -> No splash (even if has borrow)
         console.log('🎬 [LoadBook] Checking splash screen conditions:');
         console.log('   mockDonatedBy (local):', mockDonatedBy);
         console.log('   hasBorrowed:', hasBorrowed);
         console.log('   ownsNFT:', ownsNFT);
         console.log('   borrowedFromLibrary:', borrowedFromLibrary);
-        console.log('   Final condition (mockDonatedBy && hasBorrowed):', mockDonatedBy && hasBorrowed);
+        console.log('   fromLibrary (route state):', fromLibrary);
 
-        // Show splash if user has borrowed from library (regardless of ownership)
         // Use local variable mockDonatedBy, not state donatedBy (state is async!)
-        if (mockDonatedBy && hasBorrowed) {
-          console.log('✅ [LoadBook] Showing donation splash screen (borrowed from library)...');
+        if (mockDonatedBy && hasBorrowed && fromLibrary) {
+          // User accessed from LIBRARY PAGE and has borrow -> Show splash
+          console.log('✅ [LoadBook] Showing donation splash (accessed from library page)');
           console.log('   Library:', borrowedFromLibrary);
+          console.log('   User also owns NFT?', ownsNFT);
           setShowSplash(true);
+        } else if (ownsNFT && !fromLibrary) {
+          // User accessed from BOOKSHELF -> Skip splash
+          console.log('⏭️  [LoadBook] Accessed from bookshelf - skipping donation splash');
         } else if (!hasBorrowed) {
           console.log('⏭️  [LoadBook] User has not borrowed - skipping donation splash');
+        } else if (!fromLibrary) {
+          console.log('⏭️  [LoadBook] Not accessed from library page - skipping donation splash');
         } else if (!mockDonatedBy) {
           console.log('⏭️  [LoadBook] No donation info - skipping donation splash');
         }
