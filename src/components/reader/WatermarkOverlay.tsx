@@ -7,25 +7,32 @@ interface WatermarkOverlayProps {
 const WatermarkOverlay = ({ isEnabled }: WatermarkOverlayProps) => {
   const { user } = usePrivy();
 
-  if (!isEnabled || !user) return null;
+  if (!isEnabled || !user) {
+    return null;
+  }
 
-  const label =
-    user.google?.email ||
-    user.email?.address ||
-    (user.wallet?.address
-      ? user.wallet.address.slice(0, 8) + "…" + user.wallet.address.slice(-6)
-      : "");
-
-  if (!label) return null;
+  const userName = user.google?.name || user.wallet?.address?.slice(0, 10) + "..." || "User";
+  const userEmail = user.google?.email || user.wallet?.address || "";
 
   return (
-    <div className="absolute inset-0 pointer-events-none select-none overflow-hidden z-10 flex items-center justify-center">
-      <p
-        className="text-zinc-500 font-light"
-        style={{ opacity: 0.12, transform: "rotate(-20deg)", fontSize: "28px" }}
-      >
-        {label}
-      </p>
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
+      {/* Single center watermark (subtle, non-intrusive) */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="text-center opacity-10 select-none">
+          <div
+            className="font-normal text-gray-500"
+            style={{ fontSize: '3rem' }}
+          >
+            {userName}
+          </div>
+          <div
+            className="font-light text-gray-400 mt-1"
+            style={{ fontSize: '1.5rem' }}
+          >
+            {userEmail}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
