@@ -1,6 +1,4 @@
 @import "tailwindcss";
-@import 'react-pdf/dist/Page/TextLayer.css';
-@import 'react-pdf/dist/Page/AnnotationLayer.css';
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
