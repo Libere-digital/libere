@@ -8,6 +8,34 @@
 import { supabase } from './supabase';
 import type { Book } from '../core/interfaces/book.interface';
 
+export interface BandungCollectionItem {
+  id: number;
+  title: string;
+  author: string;
+  description: string;
+  cover_url: string;
+  file_url: string;
+  category: string;
+  created_at: string;
+}
+
+/**
+ * Get all books from bandung_collection table (always direct-access, no NFT required)
+ */
+export async function getBandungCollection(): Promise<BandungCollectionItem[]> {
+  const { data, error } = await supabase
+    .from('bandung_collection')
+    .select('*')
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching bandung_collection:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
 export interface Library {
   id: number;
   name: string;
@@ -26,8 +54,29 @@ export interface LibraryBook {
   library_id: number;
   book_id: number;
   is_visible: boolean;
+  is_direct_access: boolean;
   added_at: string;
   last_synced: string;
+}
+
+/**
+ * Get book IDs that are marked as direct access (no NFT/borrow required) for a library.
+ * Returns a Set for O(1) lookup.
+ */
+export async function getDirectAccessBookIds(libraryId: number): Promise<Set<number>> {
+  const { data, error } = await supabase
+    .from('library_books')
+    .select('book_id')
+    .eq('library_id', libraryId)
+    .eq('is_direct_access', true)
+    .eq('is_visible', true);
+
+  if (error) {
+    console.error('Error fetching direct access books:', error);
+    return new Set();
+  }
+
+  return new Set((data || []).map((row: any) => row.book_id));
 }
 
 /**
@@ -91,26 +140,31 @@ export async function getLibraryByAddress(address: string): Promise<Library | nu
  * Get all visible books for a library
  */
 export async function getLibraryVisibleBooks(libraryId: number): Promise<Book[]> {
-  const { data, error } = await supabase
+  const { data: libBooks, error: libError } = await supabase
     .from('library_books')
-    .select(`
-      book_id,
-      Book (*)
-    `)
+    .select('book_id')
     .eq('library_id', libraryId)
     .eq('is_visible', true);
 
-  if (error) {
-    console.error('Error fetching library books:', error);
-    throw new Error(`Failed to fetch library books: ${error.message}`);
+  if (libError) {
+    console.error('Error fetching library books:', libError);
+    throw new Error(`Failed to fetch library books: ${libError.message}`);
   }
 
-  // Extract Book objects from joined result
-  const books = (data || [])
-    .map((item: any) => item.Book)
-    .filter((book: any) => book !== null);
+  const bookIds = (libBooks || []).map((row: any) => row.book_id);
+  if (bookIds.length === 0) return [];
 
-  return books;
+  const { data, error } = await supabase
+    .from('Book')
+    .select('*')
+    .in('id', bookIds);
+
+  if (error) {
+    console.error('Error fetching books:', error);
+    throw new Error(`Failed to fetch books: ${error.message}`);
+  }
+
+  return (data || []) as Book[];
 }
 
 /**

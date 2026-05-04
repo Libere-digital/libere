@@ -1,5 +1,5 @@
 ---
-noteId: "ae9f6f903d6d11f1af0815529cf2d1a9"
+noteId: "152b05e047e511f19a3e13a9d5c39135"
 tags: []
 
 ---
@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Blockchain**: Base Sepolia testnet — viem v2 + ethers v6 + permissionless
 - **Payment**: USDC (6 decimals) — `0x036CbD53842c5426634e7929541eC2318f3dCF7e`
 - **Storage**: Supabase Storage (current) + Pinata/IPFS (legacy) for book files
-- **Database**: Supabase (Book + Library tables)
+- **Database**: Supabase (Book + Library tables + bandung_collection)
 - **Readers**: react-reader (EPUB), react-pdf (PDF), HTML5 audio (audiobook)
 - **PWA**: vite-plugin-pwa with Workbox
 
@@ -85,9 +85,12 @@ src/main.tsx → Providers (Privy) → CurrencyProvider → BrowserRouter → Su
 - `/libraries` → LibraryListScreen
 - `/bookselfs` → BookselfScreen
 - `/read-book/:id` → DocumentReaderScreen (unified EPUB/PDF reader)
+- `/read-book/bc-:id` → DocumentReaderScreen in bandung_collection mode (no auth/blockchain check)
 - `/read-pdf/:id` → redirects to `/read-book/:id` (backward compat)
 - `/listen-audiobook/:id` → AudiobookPlayerScreen
 - `/publish` → CreateBookV2Screen (disabled — `onlyOwner` restriction)
+
+**Legacy/unused pages** (not in routes): `LibraryScreen.tsx`, `PdfReaderScreen.tsx`, `TestSmartWalletScreen.tsx`
 
 ### Subdomain Routing ([src/routes/SubdomainRouter.tsx](src/routes/SubdomainRouter.tsx))
 
@@ -98,14 +101,33 @@ Library subdomains auto-redirect to their library page:
 - Allowed paths on subdomains: `/libraries/:slug`, `/read-book/:id`, `/listen-audiobook/:id`
 - All other subdomain paths redirect to the library's detail page
 
+Subdomain detection logic lives in [src/utils/subdomain.ts](src/utils/subdomain.ts).
+
+### Two Book Systems
+
+There are two separate book systems that coexist in `LibraryDetailScreen`:
+
+1. **NFT Books** (`Book` table) — on-chain ERC-1155 tokens. Availability fetched from blockchain via Blockscout API + smart contract reads. Borrow/return via `borrowFromPool`/`returnMyBorrow`.
+
+2. **Bandung Collection** (`bandung_collection` table) — library-uploaded PDFs, no NFT, no blockchain. Only exists for the Bandung library (`/libraries/bandung`). Direct access, no borrow flow needed.
+
+In `LibraryDetailScreen`, both are merged into one `displayBooks: Book[]` array. `bandung_collection` items are converted to `Book` shape with **negative IDs** (e.g., `id: -(item.id)`) to distinguish them from NFT books. `directAccessIds: Set<number>` contains these negative IDs. In `CivilibBookCard`, `isCollection = book.id < 0` is the guard that skips all blockchain calls.
+
+Reader routing: NFT books → `/read-book/{id}`, Bandung collection → `/read-book/bc-{collectionId}`. In `DocumentReaderScreen`, `rawId.startsWith("bc-")` triggers the collection path which skips auth/blockchain verification entirely and loads from `bandung_collection` directly.
+
 ### Document Reader Flow ([src/pages/DocumentReaderScreen.tsx](src/pages/DocumentReaderScreen.tsx))
 
-1. Verify NFT ownership (`balanceOf`) OR library borrow (`usableBalanceOf`) — access if either > 0
-2. Fetch book metadata from Supabase
-3. Auto-detect file type via [src/utils/documentType.ts](src/utils/documentType.ts)
-4. Route to: EpubReaderScreen (react-reader) or PdfRenderer (react-pdf)
+**NFT/borrow path** (`/read-book/{numeric-id}`):
+1. Verify NFT ownership (`balanceOf`) OR active borrow across all 3 library pools
+2. Check `library_books.is_direct_access` as third access grant
+3. Fetch book from `Book` table, download via signed URL
 
-Same access check pattern used in AudiobookPlayerScreen.
+**Bandung collection path** (`/read-book/bc-{id}`):
+1. No auth or blockchain check — open access
+2. Fetch from `bandung_collection` table (or use router state if passed)
+3. Download via signed URL from Supabase Storage
+
+Auto-detect file type via [src/utils/documentType.ts](src/utils/documentType.ts). Routes to `EpubReaderScreen` (react-reader) or `PdfRenderer` (react-pdf).
 
 ### Transaction Pattern
 
@@ -123,7 +145,9 @@ Access checks use the **smart wallet address** (ERC-4337), not the EOA. Fall bac
 
 ### Signed URL Refresh ([src/utils/supabaseStorage.ts](src/utils/supabaseStorage.ts))
 
-Supabase signed URLs expire in 5 minutes. Readers auto-refresh every 4 minutes via `setInterval`. When adding new reader components, follow this pattern to prevent mid-session expiry.
+Supabase signed URLs expire in 5 minutes. Readers auto-refresh every 4 minutes via `setInterval`. When adding new reader components, follow this pattern to prevent mid-session expiry. Always call the returned cleanup function on component unmount.
+
+Key exports: `getSignedEpubUrl()`, `getSignedPdfUrl()`, `downloadDocumentBlob()`, `setupSignedUrlAutoRefresh()`, `isSupabaseStorageUrl()`, `isIpfsUrl()`.
 
 ### CurrencyContext ([src/contexts/CurrencyContext.tsx](src/contexts/CurrencyContext.tsx))
 
@@ -135,7 +159,15 @@ Auto-detects user locale via `ipapi.co`, fetches live exchange rates from `excha
 
 ### Supabase Query Helpers ([src/libs/supabase-helpers.ts](src/libs/supabase-helpers.ts))
 
-Reusable query functions for the Library table: `getAllLibraries()`, `getLibraryById()`, `getLibraryByAddress()`, `getLibraryByName()`. These return an extended `Library` type that adds `logo_url`, `member_count`, `book_count`, `borrow_count`. Prefer these over inline Supabase queries.
+Reusable query functions — prefer these over inline Supabase queries:
+
+- **Bandung collection**: `getBandungCollection()` → `BandungCollectionItem[]`
+- **Direct access lookup**: `getDirectAccessBookIds(libraryId)` → `Set<number>`
+- **Library book operations**: `getLibraryVisibleBooks()`, `getAllLibraryBooks()`, `addBookToLibrary()`, `upsertLibraryBooks()`, `toggleBookVisibility()`, `removeBookFromLibrary()`
+- **Library queries**: `getAllLibraries()`, `getLibraryById()`, `getLibraryByAddress()`
+- **Stats**: `getLibraryStats()` → `{ totalBooks, visibleBooks, hiddenBooks }`
+
+Note: `getLibraryVisibleBooks()` uses two separate queries (no FK join) because `library_books` has no FK constraint to `Book`.
 
 ## Key Data Notes
 
@@ -143,13 +175,16 @@ Reusable query functions for the Library table: `getAllLibraries()`, `getLibrary
 - **`Book.epub`** — misleadingly named; stores document URL (EPUB or PDF).
 - **`Book.fileType`** — optional `'epub' | 'pdf'`, defaults to `'epub'` if absent.
 - **`Book.audiobook`** — optional MP3 URL for audiobook companion.
+- **`Book.donated_by`** / **`Book.donated_at`** — set when a book was donated to a library pool.
 - **Royalties** — stored as basis points (500 = 5%).
+- **Negative book IDs** — `bandung_collection` items are converted to `Book` shape with `id = -(item.id)` in `LibraryDetailScreen` to avoid collision with NFT token IDs. Never persist or send these to the blockchain.
 
 ## Supabase Schema
 
-- `Book` table — book metadata (fields map to `Book` interface in [src/core/interfaces/book.interface.ts](src/core/interfaces/book.interface.ts))
-- `Library` table — library pool info (fields map to `Library` interface in [src/core/interfaces/library.interface.ts](src/core/interfaces/library.interface.ts))
-- Storage bucket: `libere-books` — EPUB, PDF, MP3, and image files
+- `Book` table — NFT book metadata. Fields map to `Book` interface in [src/core/interfaces/book.interface.ts](src/core/interfaces/book.interface.ts)
+- `library_books` junction table — links `Book` rows to libraries (`library_id`, `book_id`, `is_visible`, `is_direct_access`). No FK constraint to `Book`.
+- `bandung_collection` table — Bandung library's own PDF collection, separate from NFT system. Fields: `id, title, author, description, cover_url, file_url, category, created_at`. RLS enabled, anon read allowed.
+- Storage bucket: `libere-books` — EPUB, PDF, MP3, and image files (private, requires signed URLs)
 
 ## PWA Caching Strategy ([vite.config.ts](vite.config.ts))
 
@@ -171,11 +206,15 @@ Monochrome grayscale color scheme. Use `getCategoryColors(cat)` or `getCategoryB
 
 ## StandaloneLayout ([src/components/layouts/StandaloneLayout.tsx](src/components/layouts/StandaloneLayout.tsx))
 
-Minimal layout for library-branded subdomain pages. Props: `librarySlug`, `libraryLogo`, `showScrollNav`. Includes sticky header, wallet dropdown, smooth scroll navigation.
+Minimal layout for library-branded subdomain pages. Props: `libraryLogo`, `libraryName`, `libraryTagline`, `showScrollNav`. Includes sticky header with "Masuk" login button, user dropdown (nama, alamat akun, logout), smooth scroll navigation. All UI text is in Bahasa Indonesia.
 
 ## Civilib Components ([src/components/civilib/](src/components/civilib/))
 
-Library-specific book display components used in `LibraryDetailScreen`. `CivilibBookList` renders books from a library pool; `CivilibAccessButton` handles borrow/return flow specific to library subdomain pages.
+Used in `LibraryDetailScreen` to render the unified book grid (NFT + Bandung collection together).
+
+- `CivilibBookList` — renders `Book[]`, accepts `directAccessIds: Set<number>` and passes `isDirectAccess` per card. Category filter tabs styled per library theme (default zinc/hitam, monochrome for theroom19, teal for block71).
+- `CivilibBookCard` — single card. `isCollection = book.id < 0` skips all blockchain calls. `isDirectAccess || isCollection` controls badge ("Tersedia" hijau), label ("Baca langsung · gratis"), and button passed to `CivilibAccessButton`.
+- `CivilibAccessButton` — handles borrow/return for NFT books. For direct/collection: navigates to `/read-book/bc-{abs(id)}` (collection) or `/read-book/{id}` (NFT). All text in Bahasa Indonesia.
 
 ## Smart Contract Development (Foundry)
 
@@ -190,7 +229,7 @@ Contract source in `smartcontract/upgradeable/`:
 - `Libere1155CoreUpgradeable.sol` — main marketplace (UUPS)
 - `LibraryPoolUpgradeable.sol` — borrowing pool (UUPS)
 
-Solidity 0.8.20, Shanghai EVM target.
+Solidity 0.8.20, Shanghai EVM target. Tests in `smartcontract/test/unit/`; mocks in `smartcontract/test/mocks/`.
 
 ## Known Issues
 

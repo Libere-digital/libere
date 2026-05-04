@@ -12,6 +12,7 @@ import EpubReaderScreen from "./EpubReaderScreen";
 import PdfRenderer from "./PdfRenderer";
 import DonationSplashScreen from "../components/reader/DonationSplashScreen";
 import { FaArrowLeft } from "react-icons/fa";
+import type { BandungCollectionItem } from "../libs/supabase-helpers";
 
 const LIBRARIES = [
   { address: "0xA31D6d3f2a6C5fBA99E451CCAAaAdf0bca12cbF0", name: "The Room 19" },
@@ -23,13 +24,20 @@ const DocumentReaderScreen = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const bookId = id || "unknown";
-  const { user, authenticated } = usePrivy();
+  const rawId = id || "unknown";
 
+  // Detect bandung_collection item (id prefixed with "bc-")
+  const isBandungCollection = rawId.startsWith("bc-");
+  const collectionId = isBandungCollection ? parseInt(rawId.slice(3), 10) : null;
+  const bookId = isBandungCollection ? rawId : rawId;
+
+  const { user, authenticated } = usePrivy();
   const fromLibrary = location.state?.fromLibrary === true;
+  const collectionItemFromState: BandungCollectionItem | undefined = location.state?.collectionItem;
 
   const [ownsNFT, setOwnsNFT] = useState<boolean | null>(null);
   const [hasBorrowed, setHasBorrowed] = useState<boolean | null>(null);
+  const [isDirectAccess, setIsDirectAccess] = useState<boolean | null>(null);
   const [borrowExpiry, setBorrowExpiry] = useState<number | null>(null);
   const [bookTitle, setBookTitle] = useState("Loading…");
   const [bookCover, setBookCover] = useState("");
@@ -41,8 +49,82 @@ const DocumentReaderScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState(false);
 
-  // ── Access verification ─────────────────────────────────────────
+  // ── Bandung Collection: no auth/blockchain check needed ─────────
   useEffect(() => {
+    if (!isBandungCollection) return;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Use item passed via router state to avoid an extra DB round trip
+        let item: BandungCollectionItem | null = collectionItemFromState || null;
+
+        if (!item && collectionId !== null) {
+          const { data, error: fetchErr } = await supabase
+            .from("bandung_collection")
+            .select("*")
+            .eq("id", collectionId)
+            .single();
+          if (fetchErr || !data) {
+            setError("Book not found");
+            setLoading(false);
+            return;
+          }
+          item = data as BandungCollectionItem;
+        }
+
+        if (!item) {
+          setError("Book not found");
+          setLoading(false);
+          return;
+        }
+
+        setBookTitle(item.title);
+        setBookCover(item.cover_url);
+
+        const fileUrl = item.file_url;
+        if (!isSupabaseStorageUrl(fileUrl)) {
+          setError("File tidak tersedia. Hubungi administrator.");
+          setLoading(false);
+          return;
+        }
+
+        const docInfo = detectDocumentType(fileUrl);
+        if (docInfo.type === "unknown") {
+          setError("Format file tidak didukung.");
+          setLoading(false);
+          return;
+        }
+
+        setDocumentType(docInfo.type);
+
+        // downloadDocumentBlob expects (bookId: number, url: string)
+        // For bandung_collection we use collectionId as the storage path key
+        const result = await downloadDocumentBlob(collectionId!, fileUrl);
+        if (!result) {
+          setError("Gagal mengunduh file. Coba lagi.");
+          setLoading(false);
+          return;
+        }
+
+        const buf = await result.blob.arrayBuffer();
+        setDocumentData(buf);
+        setLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Gagal memuat buku");
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [isBandungCollection, collectionId]);
+
+  // ── NFT/Borrow Access verification ─────────────────────────────
+  useEffect(() => {
+    if (isBandungCollection) return;
+
     if (!authenticated || !user?.wallet?.address) {
       setOwnsNFT(false);
       setHasBorrowed(false);
@@ -93,27 +175,40 @@ const DocumentReaderScreen = () => {
         setOwnsNFT(hasNFT);
         setHasBorrowed(hasBorrow);
         setBorrowExpiry(expiry);
+
+        const { data: directRow } = await supabase
+          .from('library_books')
+          .select('id')
+          .eq('book_id', parseInt(bookId, 10))
+          .eq('is_direct_access', true)
+          .eq('is_visible', true)
+          .limit(1);
+
+        setIsDirectAccess((directRow?.length ?? 0) > 0);
       } catch (_) {
         setOwnsNFT(false);
         setHasBorrowed(false);
+        setIsDirectAccess(false);
       }
     };
 
     verify();
-  }, [bookId, authenticated, user?.wallet?.address, user?.smartWallet?.address]);
+  }, [bookId, authenticated, user?.wallet?.address, user?.smartWallet?.address, isBandungCollection]);
 
-  // ── Redirect if no access ───────────────────────────────────────
+  // ── Redirect if no access (NFT flow only) ──────────────────────
   useEffect(() => {
-    if (ownsNFT === null || hasBorrowed === null) return;
-    if (ownsNFT || hasBorrowed) return;
+    if (isBandungCollection) return;
+    if (ownsNFT === null || hasBorrowed === null || isDirectAccess === null) return;
+    if (ownsNFT || hasBorrowed || isDirectAccess) return;
     alert("You do not have access to this book.\n\nPlease purchase it or borrow it from a library.");
     navigate(`/books/${bookId}`);
-  }, [ownsNFT, hasBorrowed, bookId, navigate]);
+  }, [ownsNFT, hasBorrowed, isDirectAccess, bookId, navigate, isBandungCollection]);
 
-  // ── Load book ───────────────────────────────────────────────────
+  // ── Load NFT book ───────────────────────────────────────────────
   useEffect(() => {
+    if (isBandungCollection) return;
     if (!authenticated || !user?.wallet?.address) return;
-    if (ownsNFT === null || hasBorrowed === null) return;
+    if (ownsNFT === null || hasBorrowed === null || isDirectAccess === null) return;
 
     const load = async () => {
       try {
@@ -135,7 +230,6 @@ const DocumentReaderScreen = () => {
         setBookTitle(book.title);
         setBookCover(book.metadataUri);
 
-        // Donation info (hardcoded until DB column is added)
         const mockDonatedBy = "PT Everidea Interaktif Nusantara";
         const mockDonatedAt = "2025-12-01T00:00:00+07:00";
         setDonatedBy(mockDonatedBy);
@@ -177,7 +271,7 @@ const DocumentReaderScreen = () => {
     };
 
     load();
-  }, [bookId, authenticated, user?.wallet?.address, ownsNFT, hasBorrowed]);
+  }, [bookId, authenticated, user?.wallet?.address, ownsNFT, hasBorrowed, isDirectAccess, isBandungCollection]);
 
   // ── Render ──────────────────────────────────────────────────────
 
@@ -200,7 +294,9 @@ const DocumentReaderScreen = () => {
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-14 w-14 border-b-2 border-zinc-800 mb-4" />
           <p className="text-zinc-700 font-medium">Loading {bookTitle}…</p>
-          <p className="mt-1 text-sm text-zinc-400">Verifying access &amp; preparing document</p>
+          <p className="mt-1 text-sm text-zinc-400">
+            {isBandungCollection ? "Mempersiapkan dokumen…" : "Verifying access & preparing document"}
+          </p>
         </div>
       </div>
     );
@@ -214,10 +310,10 @@ const DocumentReaderScreen = () => {
           <p className="text-lg font-semibold text-zinc-900 mb-2">Error Loading Book</p>
           <p className="text-sm text-zinc-500 mb-6">{error}</p>
           <button
-            onClick={() => navigate("/books")}
+            onClick={() => navigate(isBandungCollection ? "/libraries/bandung" : "/books")}
             className="inline-flex items-center gap-2 px-5 py-2 bg-zinc-900 text-white rounded-lg text-sm hover:bg-zinc-800 transition-colors"
           >
-            <FaArrowLeft className="text-xs" /> Back to Library
+            <FaArrowLeft className="text-xs" /> Kembali
           </button>
         </div>
       </div>

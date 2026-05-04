@@ -10,14 +10,16 @@ interface Props {
   book: Book;
   client: any;
   clientPublic: any;
-  libraryAddress?: string; // Optional: specific library pool address
-  useMonochromeColors?: boolean; // Enable for The Room 19
+  libraryAddress?: string;
+  isDirectAccess?: boolean;
+  useMonochromeColors?: boolean;
 }
 
-const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonochromeColors = false }: Props) => {
+const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, isDirectAccess = false, useMonochromeColors = false }: Props) => {
   const [totalStock, setTotalStock] = useState(0);
   const [frozenNow, setFrozenNow] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const isCollection = book.id < 0;
+  const [loading, setLoading] = useState(!isDirectAccess && !isCollection);
   const [userBorrowExpiry, setUserBorrowExpiry] = useState<number | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -45,16 +47,16 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
   const effectiveLibraryAddress = libraryAddress || libraryPoolAddress;
 
   useEffect(() => {
+    if (isDirectAccess || isCollection) return;
+
     const fetchBookAvailability = async () => {
       try {
-        // Check if clientPublic exists
         if (!clientPublic) {
           console.warn("clientPublic not available");
           setLoading(false);
           return;
         }
 
-        // Fetch total stock from main contract (balanceOf library pool)
         const totalStockBalance: any = await clientPublic.readContract({
           address: contractAddress,
           abi: contractABI,
@@ -64,7 +66,6 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
 
         setTotalStock(Number(totalStockBalance));
 
-        // Try to fetch frozen/borrowed count from library pool contract
         try {
           const availabilityData: any = await clientPublic.readContract({
             address: effectiveLibraryAddress,
@@ -73,19 +74,14 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
             args: [BigInt(book.id)],
           });
 
-          // previewAvailability returns [available, frozenNow]
-          const frozen = Number(availabilityData[1]);
-          setFrozenNow(frozen);
-        } catch (previewError: any) {
-          console.warn(`previewAvailability not available for ${effectiveLibraryAddress}, assuming all books are available`);
-          // If previewAvailability doesn't exist (new contracts), assume all books are available
+          setFrozenNow(Number(availabilityData[1]));
+        } catch (_) {
           setFrozenNow(0);
         }
 
         setLoading(false);
       } catch (error: any) {
         console.error("Error fetching book availability:", error);
-        // Set defaults on error
         setTotalStock(0);
         setFrozenNow(0);
         setLoading(false);
@@ -93,7 +89,7 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
     };
 
     fetchBookAvailability();
-  }, [clientPublic, book.id, effectiveLibraryAddress, refreshTrigger]);
+  }, [clientPublic, book.id, effectiveLibraryAddress, refreshTrigger, isDirectAccess]);
 
   return (
     <li className="w-full h-full">
@@ -101,19 +97,25 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
         className="w-full h-full flex flex-col p-5 rounded-lg border border-zinc-200 hover:border-zinc-300 hover:shadow-md transition-all duration-200 relative"
       >
         {/* Availability Tag - Top Right */}
-        {!loading && totalStock > 0 && (
+        {isDirectAccess || isCollection ? (
+          <div className="absolute top-3 right-3 z-10">
+            <span className="bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+              Tersedia
+            </span>
+          </div>
+        ) : !loading && totalStock > 0 ? (
           <div className="absolute top-3 right-3 z-10">
             {availableBooks > 0 ? (
               <span className="bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
-                Available
+                Tersedia
               </span>
             ) : (
               <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
-                Not Available
+                Tidak Tersedia
               </span>
             )}
           </div>
-        )}
+        ) : null}
 
         <div className="relative w-full h-56 bg-zinc-100 rounded overflow-hidden flex-shrink-0">
           <img
@@ -140,13 +142,17 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
             </div>
           )}
           <div className="flex flex-col items-start justify-start mt-3 mb-3 w-full gap-2">
-            {loading ? (
+            {isDirectAccess || isCollection ? (
+              <span className="bg-zinc-100 text-zinc-700 text-xs font-semibold px-2.5 py-0.5 rounded-sm">
+                Baca langsung · gratis
+              </span>
+            ) : loading ? (
               <span className="bg-zinc-100 text-zinc-600 text-xs font-semibold px-2.5 py-0.5 rounded-sm animate-pulse">
-                Loading availability...
+                Memuat ketersediaan...
               </span>
             ) : totalStock === 0 ? (
               <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded-sm">
-                Not in library collection
+                Belum ada di koleksi
               </span>
             ) : (
               <>
@@ -157,18 +163,16 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
                       : "bg-red-200 text-red-900 text-xs font-semibold px-2.5 py-0.5 rounded-sm"
                   }
                 >
-                  Availability: {availableBooks}/{totalStock}
+                  Tersedia: {availableBooks}/{totalStock}
                 </span>
-                {/* Show expiry time if user has borrowed this book */}
                 {userBorrowExpiry && userBorrowExpiry > 1 && (
                   <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-sm">
-                    Due: {formatExpiryTime(userBorrowExpiry)}
+                    Dikembalikan: {formatExpiryTime(userBorrowExpiry)}
                   </span>
                 )}
-                {/* Show "Borrowed" badge if expiry is placeholder (value = 1) */}
                 {userBorrowExpiry === 1 && (
                   <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-sm">
-                    Currently Borrowed
+                    Sedang Dipinjam
                   </span>
                 )}
               </>
@@ -181,9 +185,9 @@ const CivilibBookCard = ({ book, client, clientPublic, libraryAddress, useMonoch
               isBookAvailable={isBookAvailable}
               bookId={book.id}
               smartWalletAddress={client?.account.address}
+              isDirectAccess={isDirectAccess || isCollection}
               onBorrowStatusChange={(expiry) => {
                 setUserBorrowExpiry(expiry);
-                // Trigger availability refresh when borrow status changes
                 setRefreshTrigger(prev => prev + 1);
               }}
               libraryAddress={effectiveLibraryAddress}

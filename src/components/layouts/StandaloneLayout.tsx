@@ -141,7 +141,7 @@ const StandaloneLayout: React.FC<StandaloneLayoutProps> = ({
 
                     {/* Wallet Address */}
                     <div className="px-4 py-3 border-b border-zinc-100">
-                      <p className="text-[11px] text-zinc-500 font-medium mb-1">Wallet Address</p>
+                      <p className="text-[11px] text-zinc-500 font-medium mb-1">Alamat Akun</p>
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-mono text-zinc-900">
                           {client.account.address.slice(0, 8)}...{client.account.address.slice(-6)}
@@ -177,7 +177,7 @@ const StandaloneLayout: React.FC<StandaloneLayoutProps> = ({
               // Loading wallet
               <div className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-600">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-zinc-900"></div>
-                <span className="hidden sm:inline">Setting up wallet...</span>
+                <span className="hidden sm:inline">Menyiapkan...</span>
               </div>
             )
           ) : (
@@ -186,7 +186,7 @@ const StandaloneLayout: React.FC<StandaloneLayoutProps> = ({
               onClick={login}
               className="cursor-pointer text-white bg-zinc-900 hover:bg-zinc-800 font-bold rounded-lg text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-2.5 transition-all shadow-md hover:shadow-lg"
             >
-              Connect Wallet
+              Masuk
             </button>
           )}
           </div>

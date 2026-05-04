@@ -9,12 +9,13 @@ import { getCategoryColors } from "../../utils/categoryColors";
 interface Props {
   books: Book[];
   isLoading: boolean;
-  libraryAddress?: string; // Optional: specific library pool address
-  useMonochromeColors?: boolean; // Enable for The Room 19
-  useBlock71Colors?: boolean; // Enable for Block71 Indonesia
+  libraryAddress?: string;
+  directAccessIds?: Set<number>;
+  useMonochromeColors?: boolean;
+  useBlock71Colors?: boolean;
 }
 
-const CivilibBookList = ({ books, libraryAddress, useMonochromeColors = false, useBlock71Colors = false }: Props) => {
+const CivilibBookList = ({ books, libraryAddress, directAccessIds = new Set(), useMonochromeColors = false, useBlock71Colors = false }: Props) => {
   const { client } = useSmartWallets();
   const clientPublic = createPublicClient({
     chain: baseSepolia,
@@ -125,11 +126,12 @@ const CivilibBookList = ({ books, libraryAddress, useMonochromeColors = false, u
         <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 auto-rows-fr">
           {filteredBooks.map((book) => (
             <CivilibBookCard
-              key={book.title}
+              key={book.id}
               book={book}
               client={client}
               clientPublic={clientPublic}
               libraryAddress={libraryAddress}
+              isDirectAccess={directAccessIds.has(book.id)}
               useMonochromeColors={useMonochromeColors}
             />
           ))}

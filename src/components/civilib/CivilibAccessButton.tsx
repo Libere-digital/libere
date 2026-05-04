@@ -15,7 +15,8 @@ interface Props {
   bookId: number;
   smartWalletAddress: string;
   onBorrowStatusChange?: (expiry: number | null) => void;
-  libraryAddress?: string; // Optional: specific library pool address
+  libraryAddress?: string;
+  isDirectAccess?: boolean;
 }
 
 const CivilibAccessButton = ({
@@ -26,8 +27,8 @@ const CivilibAccessButton = ({
   smartWalletAddress,
   onBorrowStatusChange,
   libraryAddress,
+  isDirectAccess = false,
 }: Props) => {
-  // Use provided libraryAddress or default to libraryPoolAddress
   const effectiveLibraryAddress = libraryAddress || libraryPoolAddress;
   const [hasBorrowed, setHasBorrowed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -36,6 +37,9 @@ const CivilibAccessButton = ({
 
   // Check if user has borrowed this book using getActiveBorrows
   useEffect(() => {
+    // Direct access books don't need borrow status check
+    if (isDirectAccess) return;
+
     const checkBorrowStatus = async () => {
       if (!clientPublic || !smartWalletAddress) return;
 
@@ -77,17 +81,17 @@ const CivilibAccessButton = ({
     };
 
     checkBorrowStatus();
-  }, [bookId, clientPublic, smartWalletAddress, effectiveLibraryAddress]); // Remove onBorrowStatusChange to prevent infinite loop
+  }, [bookId, clientPublic, smartWalletAddress, effectiveLibraryAddress, isDirectAccess]);
 
   // Borrow book from library pool
   const onBorrowBook = async () => {
     if (!client) {
-      setStatusMessage("Please connect your wallet");
+      setStatusMessage("Silakan masuk terlebih dahulu");
       return;
     }
 
     setLoading(true);
-    setStatusMessage("Borrowing book...");
+    setStatusMessage("Meminjam buku...");
 
     try {
       const tx = await client.sendTransaction({
@@ -101,7 +105,7 @@ const CivilibAccessButton = ({
       });
 
       console.log("Borrow tx:", tx);
-      setStatusMessage("Book borrowed successfully!");
+      setStatusMessage("Buku berhasil dipinjam!");
 
       // Refresh borrow status after a short delay to allow blockchain to update
       setTimeout(async () => {
@@ -135,7 +139,7 @@ const CivilibAccessButton = ({
       }, 2000);
     } catch (error: any) {
       console.error("Error borrowing book:", error);
-      setStatusMessage(`Error: ${error.message || "Failed to borrow"}`);
+      setStatusMessage(`Gagal meminjam: ${error.message || "coba lagi"}`);
       setLoading(false);
     }
   };
@@ -143,12 +147,12 @@ const CivilibAccessButton = ({
   // Return borrowed book
   const onReturnBook = async () => {
     if (!client) {
-      setStatusMessage("Please connect your wallet");
+      setStatusMessage("Silakan masuk terlebih dahulu");
       return;
     }
 
     setLoading(true);
-    setStatusMessage("Returning book...");
+    setStatusMessage("Mengembalikan buku...");
 
     try {
       const tx = await client.sendTransaction({
@@ -162,7 +166,7 @@ const CivilibAccessButton = ({
       });
 
       console.log("Return tx:", tx);
-      setStatusMessage("Book returned successfully!");
+      setStatusMessage("Buku berhasil dikembalikan!");
 
       // Refresh borrow status after a short delay
       setTimeout(() => {
@@ -177,14 +181,17 @@ const CivilibAccessButton = ({
       }, 2000);
     } catch (error: any) {
       console.error("Error returning book:", error);
-      setStatusMessage(`Error: ${error.message || "Failed to return"}`);
+      setStatusMessage(`Gagal mengembalikan: ${error.message || "coba lagi"}`);
       setLoading(false);
     }
   };
 
   const onOpenEpub = () => {
-    // Navigate with state to indicate user came from library page
-    navigate(`/read-book/${bookId}`, { state: { fromLibrary: true } });
+    // Negative bookId = bandung_collection item (bc-{abs(id)})
+    const route = bookId < 0
+      ? `/read-book/bc-${Math.abs(bookId)}`
+      : `/read-book/${bookId}`;
+    navigate(route, { state: { fromLibrary: true } });
   };
 
   return (
@@ -192,9 +199,9 @@ const CivilibAccessButton = ({
       {/* Status Message */}
       {statusMessage && (
         <div className={`text-xs text-center py-1 rounded ${
-          statusMessage.includes("Error")
+          statusMessage.includes("Error") || statusMessage.includes("gagal")
             ? "bg-red-50 text-red-700"
-            : statusMessage.includes("successfully")
+            : statusMessage.includes("berhasil")
             ? "bg-green-50 text-green-700"
             : "bg-blue-50 text-blue-700"
         }`}>
@@ -203,7 +210,15 @@ const CivilibAccessButton = ({
       )}
 
       {/* Buttons */}
-      {hasBorrowed ? (
+      {isDirectAccess ? (
+        // Direct access: open reader immediately, no borrow needed
+        <button
+          onClick={onOpenEpub}
+          className="cursor-pointer flex flex-row gap-2 justify-center items-center w-full bg-zinc-900 text-white px-2.5 py-2 rounded-md hover:bg-zinc-800 transition-colors font-medium"
+        >
+          <FaBookReader /> Baca
+        </button>
+      ) : hasBorrowed ? (
         // User has borrowed this book - Show Read & Return buttons (regardless of availability)
         <div className="flex gap-2 w-full">
           <button
@@ -211,33 +226,31 @@ const CivilibAccessButton = ({
             disabled={loading}
             className="flex-1 cursor-pointer flex flex-row gap-2 justify-center items-center bg-zinc-900 text-white px-2.5 py-2 rounded-md disabled:bg-zinc-400 disabled:cursor-not-allowed hover:bg-zinc-800 transition-colors font-medium"
           >
-            <FaBookReader /> Read Book
+            <FaBookReader /> Baca Buku
           </button>
           <button
             onClick={onReturnBook}
             disabled={loading}
             className="cursor-pointer flex flex-row gap-2 justify-center items-center bg-white border-2 border-zinc-900 text-zinc-900 px-3 py-2 rounded-md disabled:bg-zinc-200 disabled:cursor-not-allowed disabled:border-zinc-400 disabled:text-zinc-400 hover:bg-zinc-900 hover:text-white transition-colors font-medium"
           >
-            <BiArrowBack /> Return
+            <BiArrowBack /> Kembalikan
           </button>
         </div>
       ) : isBookAvailable ? (
-        // User hasn't borrowed but book is available - Show Borrow button
         <button
           onClick={onBorrowBook}
           disabled={loading}
           className="cursor-pointer flex flex-row gap-2 justify-center items-center w-full bg-zinc-900 text-white px-2.5 py-2 rounded-md disabled:bg-zinc-400 disabled:cursor-not-allowed hover:bg-zinc-800 transition-colors font-medium"
         >
-          <FaBookReader /> {loading ? "Borrowing..." : "Borrow"}
+          <FaBookReader /> {loading ? "Meminjam..." : "Pinjam"}
         </button>
       ) : (
-        // Book not available and user hasn't borrowed
         <button
           disabled={true}
           className="cursor-pointer flex flex-row gap-2 justify-center items-center w-full bg-white border border-zinc-300 text-zinc-400 px-2.5 py-2 rounded-md disabled:bg-zinc-100 disabled:cursor-not-allowed font-medium"
         >
           <FiSlash />
-          Not available
+          Tidak tersedia
         </button>
       )}
     </div>

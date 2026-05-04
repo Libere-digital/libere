@@ -6,6 +6,7 @@ import CivilibBookList from "../components/civilib/CivilibBookList";
 import type { Book } from "../core/interfaces/book.interface";
 import { contractAddress } from "../smart-contract.abi";
 import ImageCarousel from "../components/carousel/ImageCarousel";
+import { getLibraryVisibleBooks, getDirectAccessBookIds, getBandungCollection } from "../libs/supabase-helpers";
 
 const baseUrl = config.env.supabase.baseUrl;
 
@@ -215,7 +216,8 @@ const LibraryDetailScreen = () => {
   const theme = libraryThemes[librarySlug] || libraryThemes['default'];
 
   const [books, setBooks] = useState<Book[]>([]);
-  const [nftBooks, setNftBooks] = useState<Book[]>([]);
+  const [displayBooks, setDisplayBooks] = useState<Book[]>([]);
+  const [directAccessIds, setDirectAccessIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState<boolean>(false);
 
   // Bandung library images for carousel
@@ -248,44 +250,73 @@ const LibraryDetailScreen = () => {
     fetchBooks();
   }, []);
 
-  // Fetch library NFTs from Blockscout and filter books
+  // Fetch books for display: union of on-chain NFT books + Supabase direct-access books
   useEffect(() => {
-    const fetchLibraryNFTs = async () => {
+    const fetchDisplayBooks = async () => {
       try {
         setLoading(true);
 
-        // Fetch NFTs from main contract owned by library pool address
-        const res = await fetch(
-          `https://base-sepolia.blockscout.com/api/v2/tokens/${contractAddress}/instances?holder_address_hash=${library.poolAddress}`
-        );
-        const data = await res.json();
+        // Fetch NFT books from Blockscout (books owned by this library's pool contract)
+        let nftBooks: Book[] = [];
+        try {
+          const res = await fetch(
+            `https://base-sepolia.blockscout.com/api/v2/tokens/${contractAddress}/instances?holder_address_hash=${library.poolAddress}`
+          );
+          const data = await res.json();
+          const ids: string[] = data.items?.map((i: any) => i.id) || [];
+          nftBooks = books.filter((book) => ids.includes(String(book.id)));
+        } catch (_) {
+          // Blockscout unavailable — proceed with direct books only
+        }
 
-        console.log('Blockscout API Response:', data); // Debug log
+        // Fetch direct-access books from Supabase library_books
+        const directBooks = await getLibraryVisibleBooks(library.id);
+        const directIds = await getDirectAccessBookIds(library.id);
 
-        // Extract NFT token IDs
-        const ids: string[] = data.items?.map((i: any) => i.id) || [];
+        // Fetch bandung_collection and convert to Book shape (Bandung only)
+        let collectionBooks: Book[] = [];
+        const collectionIds = new Set<number>();
+        if (librarySlug === 'bandung') {
+          const collection = await getBandungCollection();
+          collectionBooks = collection.map(item => ({
+            id: -(item.id),           // negative ID to avoid collision with NFT IDs
+            title: item.title,
+            author: item.author,
+            description: item.description,
+            publisher: 'Disarpus',
+            metadataUri: item.cover_url,
+            epub: item.file_url,
+            priceEth: '0',
+            royalty: 0,
+            addressReciepent: '0x0000000000000000000000000000000000000000',
+            addressRoyaltyRecipient: '0x0000000000000000000000000000000000000000',
+            category: item.category,
+            fileType: 'pdf',
+            _collectionItemId: item.id,  // store original id for routing
+          } as Book & { _collectionItemId: number }));
+          collection.forEach(item => collectionIds.add(-(item.id)));
+        }
 
-        console.log('NFT IDs found in library pool:', ids); // Debug log
+        // Merge directIds + collectionIds
+        const allDirectIds = new Set([...directIds, ...collectionIds]);
+        setDirectAccessIds(allDirectIds);
 
-        // Filter books that exist in library
-        const filteredBooks = books.filter((book) =>
-          ids.includes(String(book.id))
-        );
+        // Merge NFT + library_books direct + bandung_collection, no duplicates
+        const nftBookIds = new Set(nftBooks.map(b => b.id));
+        const uniqueDirectBooks = directBooks.filter(b => !nftBookIds.has(b.id));
 
-        console.log('Filtered books:', filteredBooks); // Debug log
-
-        setNftBooks(filteredBooks);
+        setDisplayBooks([...nftBooks, ...uniqueDirectBooks, ...collectionBooks]);
         setLoading(false);
       } catch (err) {
-        console.error("Failed to get Library NFT Data", err);
+        console.error("Failed to get Library Book Data", err);
         setLoading(false);
       }
     };
 
     if (books.length > 0) {
-      fetchLibraryNFTs();
+      fetchDisplayBooks();
     }
-  }, [books, library.poolAddress]);
+  }, [books, library.poolAddress, library.id]);
 
   return (
     <StandaloneLayout
@@ -356,33 +387,33 @@ const LibraryDetailScreen = () => {
           </div>
         )}
 
-        {/* Books Section */}
+        {/* Koleksi Buku */}
         <div id="books" className="scroll-mt-16 w-full h-fit flex items-start justify-center py-16">
           <section className="w-full max-w-screen-xl px-4 sm:px-6">
-            {/* Section Header */}
             <div className="mb-8">
               <h2 className="text-3xl md:text-4xl font-black text-black mb-2">
-                Digital Books Collection
+                Koleksi Buku Digital
               </h2>
               <p className="text-zinc-600">
-                Explore our curated collection of digital literature
+                Jelajahi koleksi buku digital pilihan perpustakaan kami
               </p>
             </div>
-            {nftBooks.length === 0 && !loading ? (
+            {displayBooks.length === 0 && !loading ? (
               <div className="bg-white rounded-xl border-2 border-dashed border-zinc-300 p-12 text-center">
                 <div className="text-zinc-400 text-5xl mb-4">📚</div>
                 <h3 className="text-xl font-semibold text-zinc-900 mb-2">
-                  Collection Coming Soon
+                  Koleksi Segera Hadir
                 </h3>
                 <p className="text-zinc-600">
-                  New titles will appear here once they are added to the library.
+                  Buku akan muncul di sini setelah ditambahkan ke perpustakaan.
                 </p>
               </div>
             ) : (
               <CivilibBookList
-                books={nftBooks}
+                books={displayBooks}
                 isLoading={loading}
                 libraryAddress={library.poolAddress}
+                directAccessIds={directAccessIds}
                 useMonochromeColors={librarySlug === 'theroom19'}
                 useBlock71Colors={librarySlug === 'block71'}
               />
