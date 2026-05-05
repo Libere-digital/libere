@@ -125,7 +125,7 @@ Reader routing: NFT books → `/read-book/{id}`, Bandung collection → `/read-b
 **Bandung collection path** (`/read-book/bc-{id}`):
 1. No auth or blockchain check — open access
 2. Fetch from `bandung_collection` table (or use router state if passed)
-3. Download via signed URL from Supabase Storage
+3. Extract storage path from `file_url` by splitting on `/libere-books/`, then call `supabase.storage.from('libere-books').download(path)` directly — do NOT use `downloadDocumentBlob()` here because the storage path comes from the original NFT book ID (e.g. `1777906097/book.pdf`), not the `bandung_collection.id`
 
 Auto-detect file type via [src/utils/documentType.ts](src/utils/documentType.ts). Routes to `EpubReaderScreen` (react-reader) or `PdfRenderer` (react-pdf).
 
