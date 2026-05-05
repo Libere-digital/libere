@@ -100,16 +100,30 @@ const DocumentReaderScreen = () => {
 
         setDocumentType(docInfo.type);
 
-        // downloadDocumentBlob expects (bookId: number, url: string)
-        // For bandung_collection we use collectionId as the storage path key
-        const result = await downloadDocumentBlob(collectionId!, fileUrl);
-        if (!result) {
+        // Extract storage path from file_url, e.g.:
+        // "https://.../storage/v1/object/public/libere-books/1777906097/book.pdf"
+        // → download with path "1777906097/book.pdf" from the bucket directly
+        const bucketMarker = '/libere-books/';
+        const bucketIdx = fileUrl.indexOf(bucketMarker);
+        const storagePath = bucketIdx !== -1 ? fileUrl.slice(bucketIdx + bucketMarker.length) : null;
+
+        if (!storagePath) {
+          setError("Gagal membaca path file.");
+          setLoading(false);
+          return;
+        }
+
+        const { data: fileData, error: dlErr } = await supabase.storage
+          .from('libere-books')
+          .download(storagePath);
+
+        if (dlErr || !fileData) {
           setError("Gagal mengunduh file. Coba lagi.");
           setLoading(false);
           return;
         }
 
-        const buf = await result.blob.arrayBuffer();
+        const buf = await fileData.arrayBuffer();
         setDocumentData(buf);
         setLoading(false);
       } catch (err) {
